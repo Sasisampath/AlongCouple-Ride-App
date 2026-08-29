@@ -7,16 +7,12 @@ import {
   Bell,
   BellRing,
   Bike,
-  Car,
   Check,
   CheckCircle2,
-  ChevronLeft,
   ChevronRight,
   CircleUserRound,
   Coffee,
   Crosshair,
-  CupSoda,
-  Flower2,
   Gauge,
   Gift,
   Heart,
@@ -31,14 +27,12 @@ import {
   Navigation2,
   Pause,
   Phone,
-  Pill,
   Play,
   Plus,
   Radio,
   RotateCcw,
   Route,
   Send,
-  Settings2,
   ShieldCheck,
   ShoppingBag,
   SignalLow,
@@ -46,7 +40,6 @@ import {
   TimerReset,
   UserRound,
   Users,
-  Wifi,
   WifiOff,
   X,
 } from "lucide-react";
@@ -129,6 +122,8 @@ function useLiveSpeed(active: boolean, edgeMode: EdgeMode) {
 
   useEffect(() => {
     if (!active || !navigator.geolocation || edgeMode === "gps-denied") {
+      // This mirrors an external browser capability into the UI.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (!navigator.geolocation) setPermission("unavailable");
       if (edgeMode === "gps-denied") setPermission("denied");
       return;
@@ -169,6 +164,8 @@ export default function AlongApp() {
 
   useEffect(() => {
     const saved = realtime.load();
+    // Hydrate the locally recovered ride only after the browser is available.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (saved) setState({ ...INITIAL_STATE, ...saved, lastUpdated: Date.now() });
     setHydrated(true);
     const install = (event: Event) => {
@@ -184,16 +181,15 @@ export default function AlongApp() {
   }, [hydrated, state]);
 
   useEffect(() => {
-    const onOnline = () => state.edgeMode === "offline" && patchState({ edgeMode: "normal" });
-    const onOffline = () => patchState({ edgeMode: "offline" });
+    const onOnline = () => setState((current) => current.edgeMode === "offline" ? { ...current, edgeMode: "normal", lastUpdated: Date.now() } : current);
+    const onOffline = () => setState((current) => ({ ...current, edgeMode: "offline", lastUpdated: Date.now() }));
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
     return () => {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.edgeMode]);
+  }, []);
 
   const patchState = (patch: Partial<AppState>) =>
     setState((current) => ({ ...current, ...patch, lastUpdated: Date.now() }));
@@ -736,7 +732,7 @@ function BookingModal({ destination, pitStops, onDestination, onSubmit }: { dest
 }
 
 function DestinationModal({ value, onChange, onSelect }: { value: string; onChange: (value: string) => void; onSelect: (value: string) => void }) {
-  return <div className="destination-modal"><span className="modal-kicker">DESTINATION</span><h2>Where to?</h2><div className="search-box"><MapPin size={19} /><input autoFocus value={value} onChange={(event) => onChange(event.target.value)} placeholder="Search a place or address" /><button onClick={() => value && onSelect(value)}><ArrowRight size={17} /></button></div><button className="current-location"><Crosshair size={18} /><span><strong>Choose on the way</strong>Keep destination open for now</span><ChevronRight size={17} /></button><h3>Saved places</h3><div className="places-list">{places.map(({ title, address, icon: Icon }) => <button key={title} onClick={() => onSelect(`${title} · ${address}`)}><span><Icon size={18} /></span><p><strong>{title}</strong>{address}</p><ChevronRight size={16} /></button>)}</div></div>;
+  return <div className="destination-modal"><span className="modal-kicker">DESTINATION</span><h2>Where to?</h2><div className="search-box"><MapPin size={19} /><input value={value} onChange={(event) => onChange(event.target.value)} placeholder="Search a place or address" aria-label="Search a place or address" /><button onClick={() => value && onSelect(value)} aria-label="Use this destination"><ArrowRight size={17} /></button></div><button className="current-location" onClick={() => onSelect("")}><Crosshair size={18} /><span><strong>Choose on the way</strong>Keep destination open for now</span><ChevronRight size={17} /></button><h3>Saved places</h3><div className="places-list">{places.map(({ title, address, icon: Icon }) => <button key={title} onClick={() => onSelect(`${title} · ${address}`)}><span><Icon size={18} /></span><p><strong>{title}</strong>{address}</p><ChevronRight size={16} /></button>)}</div></div>;
 }
 
 function MessagesModal({ onSend }: { onSend: (message: string) => void }) {
@@ -746,7 +742,7 @@ function MessagesModal({ onSend }: { onSend: (message: string) => void }) {
 
 function PitStopModal({ kind, chocolate, custom, onKind, onChocolate, onCustom, onAdd, duringRide }: { kind: PitStop["kind"]; chocolate: string; custom: string; onKind: (kind: PitStop["kind"]) => void; onChocolate: (value: string) => void; onCustom: (value: string) => void; onAdd: () => void; duringRide: boolean }) {
   const template = requestKinds.find((item) => item.kind === kind)!;
-  return <div className="pitstop-modal"><span className="modal-kicker">{duringRide ? "ADD TO THIS RIDE" : "ASK AHEAD"}</span><h2>A little stop?</h2><div className="kind-scroll">{requestKinds.map((item) => <button key={item.kind} className={kind === item.kind ? "active" : ""} onClick={() => onKind(item.kind)}><span>{item.emoji}</span>{item.title}</button>)}</div><div className="request-detail-hero"><span>{template.emoji}</span><div><small>REQUESTING</small><strong>{template.title}</strong><p>{template.detail}</p></div></div>{kind === "chocolate" && <div className="choice-chips"><label>Choose one</label>{["Dairy Milk Silk", "KitKat", "Ferrero Rocher", "Surprise me"].map((item) => <button key={item} className={chocolate === item ? "active" : ""} onClick={() => onChocolate(item)}>{item}</button>)}</div>}{kind === "coffee" && <div className="choice-chips"><label>When?</label>{["Before pickup", "During our ride", "Your call"].map((item) => <button key={item}>{item}</button>)}</div>}{kind === "custom" && <textarea autoFocus value={custom} onChange={(event) => onCustom(event.target.value)} placeholder="What should he bring or do?" maxLength={100} />}<label className="route-stop-option"><input type="checkbox" defaultChecked={kind !== "custom"} /><span><strong>Add it as a route stop</strong>Sasi can adjust if it’s out of the way.</span></label><button className="primary-button" onClick={onAdd}>Send request <ArrowRight size={18} /></button></div>;
+  return <div className="pitstop-modal"><span className="modal-kicker">{duringRide ? "ADD TO THIS RIDE" : "ASK AHEAD"}</span><h2>A little stop?</h2><div className="kind-scroll">{requestKinds.map((item) => <button key={item.kind} className={kind === item.kind ? "active" : ""} onClick={() => onKind(item.kind)}><span>{item.emoji}</span>{item.title}</button>)}</div><div className="request-detail-hero"><span>{template.emoji}</span><div><small>REQUESTING</small><strong>{template.title}</strong><p>{template.detail}</p></div></div>{kind === "chocolate" && <div className="choice-chips"><span className="choice-label">Choose one</span>{["Dairy Milk Silk", "KitKat", "Ferrero Rocher", "Surprise me"].map((item) => <button key={item} className={chocolate === item ? "active" : ""} onClick={() => onChocolate(item)}>{item}</button>)}</div>}{kind === "coffee" && <div className="choice-chips"><span className="choice-label">When?</span>{["Before pickup", "During our ride", "Your call"].map((item) => <button key={item}>{item}</button>)}</div>}{kind === "custom" && <textarea value={custom} onChange={(event) => onCustom(event.target.value)} placeholder="What should he bring or do?" aria-label="Custom request" maxLength={100} />}<label className="route-stop-option"><input type="checkbox" defaultChecked={kind !== "custom"} /><span><strong>Add it as a route stop</strong>Sasi can adjust if it’s out of the way.</span></label><button className="primary-button" onClick={onAdd}>Send request <ArrowRight size={18} /></button></div>;
 }
 
 function CancelModal({ stage, onKeep, onCancel }: { stage: RideStage; onKeep: () => void; onCancel: () => void }) {
@@ -757,5 +753,5 @@ function CancelModal({ stage, onKeep, onCancel }: { stage: RideStage; onKeep: ()
 function DemoModal({ state, onRole, onStage, onEdge, onReset, hint, onHint }: { state: AppState; onRole: (role: Role) => void; onStage: (stage: RideStage) => void; onEdge: (edge: EdgeMode) => void; onReset: () => void; hint: boolean; onHint: () => void }) {
   const stages: RideStage[] = ["idle", "requested", "enroute", "nearby", "arrived", "active", "paused", "complete"];
   const edgeModes: EdgeMode[] = ["normal", "offline", "weak", "stale", "gps-low", "gps-denied", "map-failed", "backgrounded"];
-  return <div className="demo-modal"><span className="modal-kicker">PRIVATE PREVIEW TOOL</span><h2>Demo controls</h2><p>Switch sides and jump between realistic ride and connection states. This panel is hidden behind the Along wordmark in the product preview.</p><label>View as</label><div className="segmented"><button className={state.role === "rider" ? "active" : ""} onClick={() => onRole("rider")}><CircleUserRound size={17} />Anu · rider</button><button className={state.role === "driver" ? "active" : ""} onClick={() => onRole("driver")}><Bike size={17} />Sasi · driver</button></div><label>Ride moment</label><div className="demo-chips">{stages.map((stage) => <button key={stage} className={state.stage === stage ? "active" : ""} onClick={() => onStage(stage)}>{stageLabel[stage]}</button>)}</div><label>Edge state</label><div className="demo-chips edge-chips">{edgeModes.map((mode) => <button key={mode} className={state.edgeMode === mode ? "active" : ""} onClick={() => onEdge(mode)}>{mode.replace("gps-", "GPS ").replace("map-", "map ")}</button>)}</div>{!hint ? <button className="demo-tip" onClick={onHint}><Info size={15} />Why these controls?</button> : <div className="demo-explanation">They make every important edge case visible without waiting for a real GPS drop, network failure, or second phone.</div>}<button className="reset-button" onClick={onReset}><RotateCcw size={17} />Reset demo data</button></div>;
+  return <div className="demo-modal"><span className="modal-kicker">PRIVATE PREVIEW TOOL</span><h2>Demo controls</h2><p>Switch sides and jump between realistic ride and connection states. This panel is hidden behind the Along wordmark in the product preview.</p><div className="demo-label">View as</div><div className="segmented"><button className={state.role === "rider" ? "active" : ""} onClick={() => onRole("rider")}><CircleUserRound size={17} />Anu · rider</button><button className={state.role === "driver" ? "active" : ""} onClick={() => onRole("driver")}><Bike size={17} />Sasi · driver</button></div><div className="demo-label">Ride moment</div><div className="demo-chips">{stages.map((stage) => <button key={stage} className={state.stage === stage ? "active" : ""} onClick={() => onStage(stage)}>{stageLabel[stage]}</button>)}</div><div className="demo-label">Edge state</div><div className="demo-chips edge-chips">{edgeModes.map((mode) => <button key={mode} className={state.edgeMode === mode ? "active" : ""} onClick={() => onEdge(mode)}>{mode.replace("gps-", "GPS ").replace("map-", "map ")}</button>)}</div>{!hint ? <button className="demo-tip" onClick={onHint}><Info size={15} />Why these controls?</button> : <div className="demo-explanation">They make every important edge case visible without waiting for a real GPS drop, network failure, or second phone.</div>}<button className="reset-button" onClick={onReset}><RotateCcw size={17} />Reset demo data</button></div>;
 }
