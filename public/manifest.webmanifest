@@ -1,0 +1,11 @@
+{
+  "name": "Along — just us, wherever we go",
+  "short_name": "Along",
+  "description": "A private ride and location companion for two.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f6f1",
+  "theme_color": "#f7f6f1",
+  "orientation": "portrait-primary",
+  "categories": ["navigation", "lifestyle"]
+}
