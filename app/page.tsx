@@ -259,7 +259,7 @@ export default function AlongApp() {
       notify("You already have a ride in progress");
       return;
     }
-    patchState({ destination: pendingDestination, stage: "requested", sharing: true, riderReady: false });
+    patchState({ destination: pendingDestination, stage: "requested", sharing: false, riderReady: false });
     setModal("none");
     notify("Ride request sent to Sasi");
   };
@@ -321,7 +321,7 @@ export default function AlongApp() {
           onCancel={() => setModal("cancel")}
           onReady={() => { patchState({ riderReady: true }); notify("Sasi knows you’re coming downstairs"); }}
           onSharing={() => patchState({ sharing: !state.sharing })}
-          onDriverOnline={() => patchState({ driverOnline: !state.driverOnline, sharing: !state.driverOnline })}
+          onDriverOnline={() => patchState({ driverOnline: !state.driverOnline, sharing: false })}
           onPitStopStatus={(id, status) => setState((current) => ({
             ...current,
             pitStops: current.pitStops.map((item) => item.id === id ? { ...item, status } : item),
@@ -418,7 +418,7 @@ export default function AlongApp() {
               <DemoModal
                 state={state}
                 onRole={switchRole}
-                onStage={(stage) => patchState({ stage, sharing: !["idle", "complete", "cancelled"].includes(stage) })}
+                onStage={(stage) => patchState({ stage, sharing: !["idle", "requested", "complete", "cancelled"].includes(stage) })}
                 onEdge={(edgeMode) => patchState({ edgeMode })}
                 onReset={resetRide}
                 hint={demoHint}
@@ -509,7 +509,7 @@ function DemoMap({ state, role, onBrand }: { state: AppState; role: Role; onBran
         <button className="icon-button notification-button" aria-label="Notifications"><Bell size={20} /><i>2</i></button>
       </header>
 
-      <div className={`sharing-chip ${state.sharing ? "is-sharing" : ""}`}><Radio size={13} />{state.sharing ? (role === "rider" ? "Sasi is sharing location" : "Location shared with her") : "Location sharing paused"}</div>
+      <div className={`sharing-chip ${state.sharing ? "is-sharing" : ""}`}><Radio size={13} />{state.sharing ? (role === "rider" ? "Sasi is sharing location" : "Location shared with her") : state.stage === "idle" || state.stage === "requested" ? (role === "rider" ? "Sasi shared 2 min ago" : "Normal mode · not sharing") : "Location sharing paused"}</div>
       <button className="locate-button" aria-label="Center map"><LocateFixed size={21} /></button>
       <div className="map-provider">DEMO MAP</div>
     </div>

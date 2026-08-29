@@ -55,7 +55,7 @@ export const INITIAL_STATE: AppState = {
   role: "rider",
   stage: "idle",
   driverOnline: true,
-  sharing: true,
+  sharing: false,
   destination: "",
   pickup: "Indiranagar · your current location",
   pitStops: [],
