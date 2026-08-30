@@ -73,6 +73,14 @@ button:disabled{cursor:not-allowed;opacity:.55}
 /* Dark appearance */
 .theme-dark{--ink:#f7f4e9;--ink-soft:#e5e1d7;--muted:#a9a69e;--muted-2:#74726c;--paper:#161713;--card:#22231e;--line:#34362e;--soft:#292a24;--green-soft:#17372a;color-scheme:dark}.theme-dark .map-stage{filter:brightness(.72) saturate(.72)}.theme-dark .ride-sheet,.theme-dark .bottom-nav{background:rgba(22,23,19,.96)}.theme-dark .come-button,.theme-dark .primary-button,.theme-dark .nav-icon{color:#191912}.theme-dark .speed-card{background:#292a24}.theme-dark .edge-banner{background:#f0eee6;color:#171711}.theme-dark .edge-banner strong{color:#171711}.theme-dark .edge-banner span{color:#55534d}.theme-dark .route-summary i,.theme-dark .booking-route i{border-color:#191912}.theme-dark .wordmark{color:#191912}.theme-dark .map-fallback{color:#171711}.theme-dark .status-kicker i{outline-color:rgba(22,23,19,.9)}
 
+.sasi-avatar-crop{display:block;width:100%;height:100%;overflow:hidden;border-radius:50%;background:#111}
+.sasi-avatar-crop img,.partner-photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:center}
+.sasi-header-photo img{transform:scale(1.5);transform-origin:50% 32%}
+.driver-map-marker{border-radius:50%;background:#111}
+.sasi-map-photo img{transform:scale(1.75);transform-origin:50% 33%}
+.partner-avatars span.partner-photo{overflow:hidden;border-radius:50%;border-color:#fff;background:#111}
+.partner-photo img{transform:scale(1.4);transform-origin:50% 34%}
+
 .choice-chips .choice-label{width:100%;font-size:8px;text-transform:uppercase;font-weight:800;color:var(--muted)}
 .demo-label{display:block;margin:15px 0 7px;font-size:8px;text-transform:uppercase;letter-spacing:.1em;font-weight:800;color:var(--muted)}
 

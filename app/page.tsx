@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- fixed local avatar asset; avoids Vinext next/image duplicate-renderer issue */
 
 import {
   AlertTriangle,
@@ -103,6 +104,8 @@ const stageLabel: Record<RideStage, string> = {
 type Modal = "none" | "book" | "destination" | "messages" | "demo" | "pitstop" | "cancel";
 
 type InstallPrompt = Event & { prompt: () => Promise<void> };
+
+const SASI_PROFILE_PHOTO = "/sasi-profile.png";
 
 const formatAge = (timestamp: number, edgeMode: EdgeMode) => {
   if (edgeMode === "stale") return "12 min ago";
@@ -211,7 +214,7 @@ export default function AlongApp() {
     const item: PitStop = { ...template, detail, id: crypto.randomUUID(), status: "requested" };
     setState((current) => ({ ...current, pitStops: [...current.pitStops, item], lastUpdated: Date.now() }));
     setModal("none");
-    notify(`${template.title} request sent to ${state.role === "rider" ? "Sasi" : "Anu"}`);
+    notify(`${template.title} request sent to ${state.role === "rider" ? "Sasi" : "Monu"}`);
   };
 
   const setStage = (stage: RideStage, message?: string) => {
@@ -497,14 +500,14 @@ function DemoMap({ state, role, onBrand }: { state: AppState; role: Role; onBran
           <div className="road road-a" /><div className="road road-b" /><div className="road road-c" /><div className="road road-d" />
           <span className="road-name road-name-a">100 Feet Rd</span><span className="road-name road-name-b">12th Main</span><span className="area-name">INDIRANAGAR</span>
           {routeVisible && <div className={`route-path ${moving ? "moving" : ""}`}><i /><i /><i /><i /><i /><i /><i /></div>}
-          <div className={`map-person rider-map-marker ${role === "rider" ? "is-me" : ""}`}><span>{role === "rider" ? "You" : "Anu"}</span></div>
-          <div className={`map-person driver-map-marker ${moving ? "marker-moving" : ""} ${role === "driver" ? "is-me" : ""}`}><Bike size={17} /><span>{role === "driver" ? "You" : "Sasi"}</span></div>
+          <div className={`map-person rider-map-marker ${role === "rider" ? "is-me" : ""}`}><span>{role === "rider" ? "You" : "Monu"}</span></div>
+          <div className={`map-person driver-map-marker ${moving ? "marker-moving" : ""} ${role === "driver" ? "is-me" : ""}`}><div className="sasi-avatar-crop sasi-map-photo"><img src={SASI_PROFILE_PHOTO} alt="Sasi" width={48} height={48} /></div><span>{role === "driver" ? "You" : "Sasi"}</span></div>
           {state.stage === "active" && <div className="destination-pin"><MapPin size={18} /><span>{state.destination || "Home"}</span></div>}
         </>
       )}
 
       <header className="map-header">
-        <button className="avatar-button" aria-label="Open profile"><span>{role === "rider" ? "A" : "S"}</span><i /></button>
+        <button className="avatar-button" aria-label="Open Sasi profile"><span className="sasi-avatar-crop sasi-header-photo"><img src={SASI_PROFILE_PHOTO} alt="Sasi" width={88} height={88} /></span><i /></button>
         <button className="wordmark" onClick={onBrand} aria-label="Open preview controls"><span>A</span>along</button>
         <button className="icon-button notification-button" aria-label="Notifications"><Bell size={20} /><i>2</i></button>
       </header>
@@ -615,10 +618,10 @@ function DriverRidePanel(props: RideProps) {
   if (state.stage === "requested") {
     return (
       <div className="incoming-panel">
-        <div className="incoming-top"><div className="rider-avatar">A<span /></div><div><span className="status-kicker warm">NEW RIDE REQUEST</span><h1>Anu needs a ride</h1><p>Received just now · 2.4 km away</p></div></div>
+        <div className="incoming-top"><div className="rider-avatar">M<span /></div><div><span className="status-kicker warm">NEW RIDE REQUEST</span><h1>Monu needs a ride</h1><p>Received just now · 2.4 km away</p></div></div>
         <div className="pickup-card"><div><i /><span><small>Pick up</small>{state.pickup}</span></div><div><b /><span><small>Then</small>{state.destination || "Destination not set yet"}</span></div></div>
         {state.pitStops.length > 0 && <div className="request-preview"><span>{state.pitStops[0].emoji}</span><p><strong>{state.pitStops[0].title} requested</strong>{state.pitStops[0].detail}</p></div>}
-        <div className="decision-row"><button onClick={() => props.onStage("declined", "Anu has been told you can’t make it")}>Can’t make it</button><button className="primary-button" onClick={() => props.onStage("enroute", "Ride accepted — location sharing is on")}>Accept <ArrowRight size={18} /></button></div>
+        <div className="decision-row"><button onClick={() => props.onStage("declined", "Monu has been told you can’t make it")}>Can’t make it</button><button className="primary-button" onClick={() => props.onStage("enroute", "Ride accepted — location sharing is on")}>Accept <ArrowRight size={18} /></button></div>
       </div>
     );
   }
@@ -634,23 +637,23 @@ function DriverRidePanel(props: RideProps) {
   return (
     <div className="driver-panel">
       <div className="driver-header-row">
-        <div><span className={`status-kicker ${state.driverOnline ? "available" : "offline"}`}><i />{state.driverOnline ? stageLabel[state.stage] : "You’re offline"}</span><h1>{state.stage === "idle" ? (state.driverOnline ? "Ready when she is" : "Taking a break") : props.driverTitle.replace("Sasi", "You")}</h1><p>{state.stage === "idle" ? "Anu is 2.4 km away · Indiranagar" : `Location shared · updated ${props.age}`}</p></div>
+        <div><span className={`status-kicker ${state.driverOnline ? "available" : "offline"}`}><i />{state.driverOnline ? stageLabel[state.stage] : "You’re offline"}</span><h1>{state.stage === "idle" ? (state.driverOnline ? "Ready when she is" : "Taking a break") : props.driverTitle.replace("Sasi", "You")}</h1><p>{state.stage === "idle" ? "Monu is 2.4 km away · Indiranagar" : `Location shared · updated ${props.age}`}</p></div>
         {state.stage === "idle" ? <button className={`online-toggle ${state.driverOnline ? "on" : ""}`} onClick={props.onDriverOnline}><span />{state.driverOnline ? "Online" : "Offline"}</button> : <div className="speed-card"><Gauge size={14} /><strong>{props.visibleSpeed ?? "—"}</strong><span>km/h</span></div>}
       </div>
 
       {state.stage === "idle" && (
-        <><div className="rider-nearby-card"><div className="rider-avatar">A<span /></div><div><strong>Anu</strong><p>At Home · shared 1 min ago</p></div><button onClick={props.onCall}><Phone size={18} /></button></div><div className="privacy-card"><ShieldCheck size={19} /><span><strong>Normal sharing mode</strong>Your precise location isn’t being tracked continuously.</span></div></>
+        <><div className="rider-nearby-card"><div className="rider-avatar">M<span /></div><div><strong>Monu</strong><p>At Home · shared 1 min ago</p></div><button onClick={props.onCall}><Phone size={18} /></button></div><div className="privacy-card"><ShieldCheck size={19} /><span><strong>Normal sharing mode</strong>Your precise location isn’t being tracked continuously.</span></div></>
       )}
 
       {["accepted", "enroute", "nearby", "arrived"].includes(state.stage) && (
         <div className="driver-navigation">
           <div className="next-turn"><div><Navigation size={27} /></div><span><small>IN 300 M</small>Turn right onto 12th Main</span></div>
-          <div className="driver-trip-meta"><span><strong>{state.stage === "arrived" ? "0" : "8"} min</strong>to Anu</span><span><strong>{state.stage === "arrived" ? "0" : "2.4"} km</strong>remaining</span><span><strong>12:48</strong>arrival</span></div>
+          <div className="driver-trip-meta"><span><strong>{state.stage === "arrived" ? "0" : "8"} min</strong>to Monu</span><span><strong>{state.stage === "arrived" ? "0" : "2.4"} km</strong>remaining</span><span><strong>12:48</strong>arrival</span></div>
           {state.pitStops.map((item) => (
             <div className="driver-request-card" key={item.id}><span>{item.emoji}</span><p><strong>{item.title}</strong>{item.detail}</p>{item.status === "requested" ? <div><button onClick={() => props.onPitStopStatus(item.id, "unavailable")}><X size={16} /></button><button className="done" onClick={() => props.onPitStopStatus(item.id, "secured")}><Check size={16} /></button></div> : <em className={`request-status ${item.status}`}>{item.status}</em>}</div>
           ))}
-          {state.stage !== "arrived" ? <button className="primary-button" onClick={() => props.onStage("arrived", "Anu has been told you arrived")}>I’ve arrived <ArrowRight size={18} /></button> : <button className="primary-button" disabled={!state.riderReady} onClick={() => props.onStage("active", "Ride started")}>{state.riderReady ? <>Start ride <ArrowRight size={18} /></> : "Waiting for Anu…"}</button>}
-          <div className="driver-secondary"><button onClick={props.onCall}><Phone size={17} />Call Anu</button><button onClick={props.onMessage}><MessageCircle size={17} />Message</button></div>
+          {state.stage !== "arrived" ? <button className="primary-button" onClick={() => props.onStage("arrived", "Monu has been told you arrived")}>I’ve arrived <ArrowRight size={18} /></button> : <button className="primary-button" disabled={!state.riderReady} onClick={() => props.onStage("active", "Ride started")}>{state.riderReady ? <>Start ride <ArrowRight size={18} /></> : "Waiting for Monu…"}</button>}
+          <div className="driver-secondary"><button onClick={props.onCall}><Phone size={17} />Call Monu</button><button onClick={props.onMessage}><MessageCircle size={17} />Message</button></div>
           <button className="text-button danger" onClick={props.onCancel}>Cancel ride</button>
         </div>
       )}
@@ -706,8 +709,8 @@ function ProfileScreen({ state, permission, installPrompt, onInstall, onPatch, o
   const [notifications, setNotifications] = useState(true);
   return (
     <section className="screen content-screen profile-screen">
-      <ContentHeader kicker="YOUR SPACE" title="Anu" subtitle="Private by design. Only you and Sasi are here." />
-      <div className="partner-card"><div className="partner-avatars"><span>A</span><i>♡</i><span>S</span></div><div><small>YOUR PARTNER</small><strong>Sasi</strong><p>Driver · White Ather 450X</p></div><button><Phone size={18} /></button></div>
+      <ContentHeader kicker="YOUR SPACE" title="Monu" subtitle="Private by design. Only you and Sasi are here." />
+      <div className="partner-card"><div className="partner-avatars"><span>M</span><i>♡</i><span className="partner-photo"><img src={SASI_PROFILE_PHOTO} alt="Sasi" width={128} height={128} /></span></div><div><small>YOUR PARTNER</small><strong>Sasi</strong><p>Driver · White Ather 450X</p></div><button><Phone size={18} /></button></div>
       <div className="settings-group"><h3>Places & rides</h3><SettingsRow Icon={MapPin} title="Saved places" detail="Home, Work, 3 more" /><SettingsRow Icon={Route} title="Ride history" detail="24 rides together" /><SettingsRow Icon={Users} title="Emergency contacts" detail="2 people" /></div>
       <div className="settings-group"><h3>Privacy & safety</h3><SettingsRow Icon={Radio} title="Live location" detail={state.sharing ? "Shared during active rides" : "Sharing is paused"} control={<Toggle on={state.sharing} onClick={() => onPatch({ sharing: !state.sharing })} />} /><SettingsRow Icon={Crosshair} title="Location permission" detail={permission === "granted" ? "Precise location allowed" : permission === "denied" ? "Permission denied" : "Ask when needed"} /><SettingsRow Icon={ShieldCheck} title="Privacy promise" detail="Never tracked silently or 24/7" /></div>
       <div className="settings-group"><h3>App</h3><SettingsRow Icon={BellRing} title="Notifications" detail="Ride and request updates" control={<Toggle on={notifications} onClick={() => setNotifications(!notifications)} />} /><SettingsRow Icon={Moon} title="Appearance" detail={state.appearance === "light" ? "Soft light" : "Night ride"} control={<Toggle on={state.appearance === "dark"} onClick={() => onPatch({ appearance: state.appearance === "light" ? "dark" : "light" })} />} /><button className="setting-row" onClick={onInstall}><span className="setting-icon"><Navigation size={18} /></span><span><strong>{installPrompt ? "Install Along" : "Add to Home Screen"}</strong><small>Faster launch, full-screen feel</small></span><ChevronRight size={17} /></button><SettingsRow Icon={Info} title="About Along" detail="Made for two · v1.0" /></div>
@@ -753,5 +756,5 @@ function CancelModal({ stage, onKeep, onCancel }: { stage: RideStage; onKeep: ()
 function DemoModal({ state, onRole, onStage, onEdge, onReset, hint, onHint }: { state: AppState; onRole: (role: Role) => void; onStage: (stage: RideStage) => void; onEdge: (edge: EdgeMode) => void; onReset: () => void; hint: boolean; onHint: () => void }) {
   const stages: RideStage[] = ["idle", "requested", "enroute", "nearby", "arrived", "active", "paused", "complete"];
   const edgeModes: EdgeMode[] = ["normal", "offline", "weak", "stale", "gps-low", "gps-denied", "map-failed", "backgrounded"];
-  return <div className="demo-modal"><span className="modal-kicker">PRIVATE PREVIEW TOOL</span><h2>Demo controls</h2><p>Switch sides and jump between realistic ride and connection states. This panel is hidden behind the Along wordmark in the product preview.</p><div className="demo-label">View as</div><div className="segmented"><button className={state.role === "rider" ? "active" : ""} onClick={() => onRole("rider")}><CircleUserRound size={17} />Anu · rider</button><button className={state.role === "driver" ? "active" : ""} onClick={() => onRole("driver")}><Bike size={17} />Sasi · driver</button></div><div className="demo-label">Ride moment</div><div className="demo-chips">{stages.map((stage) => <button key={stage} className={state.stage === stage ? "active" : ""} onClick={() => onStage(stage)}>{stageLabel[stage]}</button>)}</div><div className="demo-label">Edge state</div><div className="demo-chips edge-chips">{edgeModes.map((mode) => <button key={mode} className={state.edgeMode === mode ? "active" : ""} onClick={() => onEdge(mode)}>{mode.replace("gps-", "GPS ").replace("map-", "map ")}</button>)}</div>{!hint ? <button className="demo-tip" onClick={onHint}><Info size={15} />Why these controls?</button> : <div className="demo-explanation">They make every important edge case visible without waiting for a real GPS drop, network failure, or second phone.</div>}<button className="reset-button" onClick={onReset}><RotateCcw size={17} />Reset demo data</button></div>;
+  return <div className="demo-modal"><span className="modal-kicker">PRIVATE PREVIEW TOOL</span><h2>Demo controls</h2><p>Switch sides and jump between realistic ride and connection states. This panel is hidden behind the Along wordmark in the product preview.</p><div className="demo-label">View as</div><div className="segmented"><button className={state.role === "rider" ? "active" : ""} onClick={() => onRole("rider")}><CircleUserRound size={17} />Monu · rider</button><button className={state.role === "driver" ? "active" : ""} onClick={() => onRole("driver")}><Bike size={17} />Sasi · driver</button></div><div className="demo-label">Ride moment</div><div className="demo-chips">{stages.map((stage) => <button key={stage} className={state.stage === stage ? "active" : ""} onClick={() => onStage(stage)}>{stageLabel[stage]}</button>)}</div><div className="demo-label">Edge state</div><div className="demo-chips edge-chips">{edgeModes.map((mode) => <button key={mode} className={state.edgeMode === mode ? "active" : ""} onClick={() => onEdge(mode)}>{mode.replace("gps-", "GPS ").replace("map-", "map ")}</button>)}</div>{!hint ? <button className="demo-tip" onClick={onHint}><Info size={15} />Why these controls?</button> : <div className="demo-explanation">They make every important edge case visible without waiting for a real GPS drop, network failure, or second phone.</div>}<button className="reset-button" onClick={onReset}><RotateCcw size={17} />Reset demo data</button></div>;
 }
