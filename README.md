@@ -1,100 +1,47 @@
-# vinext-starter
+# Along Couple Ride App
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+Along is a private mobile-first ride companion for Monu and Sasi. It combines a rider request flow, driver controls, pit stops, live location, and a real interactive mobility map.
 
-## Prerequisites
-
-- Node.js `>=22.13.0`
-
-## Quick Start
+## Run locally
 
 ```bash
 npm install
 npm run dev
-npm run build
 ```
 
-This starter does not use `wrangler.jsonc`.
+Open `http://localhost:3000` on a phone-sized viewport. Location access is requested only after tapping **Allow location** and requires HTTPS outside localhost.
 
-## Included Shape
+## Mapping
 
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
+- MapLibre GL JS renders the interactive map.
+- OpenFreeMap Positron provides the no-key development style and OpenStreetMap-derived geography.
+- OSRM provides road route geometry for the mocked ride layer.
+- Set `VITE_MAP_STYLE_URL` to any MapLibre-compatible style JSON URL to swap the map provider styling without changing ride UI code.
 
-## Workspace Auth Headers
+The mapping boundary lives in `app/lib/map-adapter.ts`; browser location and speed handling live in `app/lib/use-live-location.ts` and `app/lib/geolocation.ts`.
 
-Signed-in visitors receive both `oai-authenticated-user-id` and `oai-authenticated-user-email`. Private Sites require every visitor to sign in; public Sites may also have anonymous visitors, for whom neither header is present.
+## Validate
 
-The user ID is stable for the same user on the same Site and different across Sites. Email and name are intended for display or contact purposes.
-
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const userId = requestHeaders.get("oai-authenticated-user-id");
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```bash
+npm run lint
+npm test
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+## Deploy to Vercel
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
+Connect this repository to Vercel with the repository root (`./`) as the Root Directory. The checked-in `vercel.json` selects Nitro, runs `npm ci` and `npm run build:vercel`, and uses `.vercel/output`.
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
+The app uses Vinext, not the Next.js build tool. `vite.vercel.config.ts` adds the [officially supported Nitro adapter](https://github.com/cloudflare/vinext#other-platforms-via-nitro) to generate Vercel's server function, routing configuration, and static assets. Do not deploy `dist/client` alone or select the Next.js preset: the home page requires the generated server route.
 
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
+```bash
+npm run build:vercel
+npm run test:vercel
+```
 
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
+Push to the connected production branch (`main`) to trigger deployment. If an older deployment shows `404: NOT_FOUND`, check that the latest commit was deployed and clear conflicting dashboard build/output overrides before redeploying. Vercel should use the settings in `vercel.json`.
 
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
+`VITE_MAP_STYLE_URL` is optional; without it, the map uses OpenFreeMap. This is a browser-visible build variable, so do not put secrets in it. Set any provider-specific public style URL in Vercel's Environment Variables before building.
 
-## Useful Commands
+The original `npm run dev`, `npm run build`, and `vite.config.ts` remain available for local development and Sites/Cloudflare hosting.
 
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
-
-## Learn More
-
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+The app is a PWA. Mobile browsers can suspend web location updates when backgrounded or locked, and Along surfaces that limitation instead of simulating movement.

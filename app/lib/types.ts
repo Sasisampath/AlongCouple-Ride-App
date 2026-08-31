@@ -1,3 +1,5 @@
+import type { DeviceLocation } from "./geolocation";
+
 export type Role = "rider" | "driver";
 export type Tab = "ride" | "requests" | "us" | "profile";
 
@@ -49,6 +51,8 @@ export type AppState = {
   lastUpdated: number;
   activeTab: Tab;
   appearance: "light" | "dark";
+  riderLocation?: DeviceLocation;
+  driverLocation?: DeviceLocation;
 };
 
 export const INITIAL_STATE: AppState = {
@@ -57,7 +61,7 @@ export const INITIAL_STATE: AppState = {
   driverOnline: true,
   sharing: false,
   destination: "",
-  pickup: "Indiranagar · your current location",
+  pickup: "Choose your pickup location",
   pitStops: [],
   riderReady: false,
   edgeMode: "normal",

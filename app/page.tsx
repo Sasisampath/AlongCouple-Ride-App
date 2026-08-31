@@ -19,7 +19,6 @@ import {
   Heart,
   Home as HomeIcon,
   Info,
-  LocateFixed,
   LockKeyhole,
   MapPin,
   MessageCircle,
@@ -44,8 +43,10 @@ import {
   WifiOff,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { SpeedSmoother, type SpeedReading } from "./lib/geolocation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LiveMap } from "./components/live-map";
+import type { DeviceLocation, SpeedReading } from "./lib/geolocation";
+import { useLiveLocation } from "./lib/use-live-location";
 import { realtime } from "./lib/realtime";
 import {
   INITIAL_STATE,
@@ -101,7 +102,7 @@ const stageLabel: Record<RideStage, string> = {
   cancelled: "Ride cancelled",
 };
 
-type Modal = "none" | "book" | "destination" | "messages" | "demo" | "pitstop" | "cancel";
+type Modal = "none" | "book" | "pickup" | "destination" | "messages" | "demo" | "pitstop" | "cancel";
 
 type InstallPrompt = Event & { prompt: () => Promise<void> };
 
@@ -112,42 +113,6 @@ const formatAge = (timestamp: number, edgeMode: EdgeMode) => {
   const seconds = Math.max(0, Math.round((Date.now() - timestamp) / 1000));
   return seconds < 10 ? "just now" : `${seconds}s ago`;
 };
-
-function useLiveSpeed(active: boolean, edgeMode: EdgeMode) {
-  const [reading, setReading] = useState<SpeedReading>({
-    speedKmh: null,
-    accuracy: null,
-    source: "unavailable",
-    lastUpdated: null,
-  });
-  const [permission, setPermission] = useState<"prompt" | "granted" | "denied" | "unavailable">("prompt");
-  const smoother = useRef(new SpeedSmoother());
-
-  useEffect(() => {
-    if (!active || !navigator.geolocation || edgeMode === "gps-denied") {
-      // This mirrors an external browser capability into the UI.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (!navigator.geolocation) setPermission("unavailable");
-      if (edgeMode === "gps-denied") setPermission("denied");
-      return;
-    }
-    const id = navigator.geolocation.watchPosition(
-      (position) => {
-        setPermission("granted");
-        if (edgeMode === "gps-low") {
-          setReading({ speedKmh: null, accuracy: 140, source: "unavailable", lastUpdated: Date.now() });
-        } else {
-          setReading(smoother.current.add(position));
-        }
-      },
-      (error) => setPermission(error.code === error.PERMISSION_DENIED ? "denied" : "unavailable"),
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 12000 },
-    );
-    return () => navigator.geolocation.clearWatch(id);
-  }, [active, edgeMode]);
-
-  return { reading, permission };
-}
 
 export default function AlongApp() {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
@@ -160,10 +125,33 @@ export default function AlongApp() {
   const [pendingDestination, setPendingDestination] = useState("");
   const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(null);
   const [demoHint, setDemoHint] = useState(false);
+  const [mapFocusSignal, setMapFocusSignal] = useState(0);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const locationActive = state.role === "driver" && state.sharing && state.stage !== "idle";
-  const { reading, permission } = useLiveSpeed(locationActive, state.edgeMode);
+  const isRideLive = ["requested", "accepted", "enroute", "nearby", "arrived", "active", "paused"].includes(state.stage);
+  const locationActive = isRideLive && (state.role === "rider" || state.sharing);
+  const saveDeviceLocation = useCallback((location: DeviceLocation) => {
+    setState((current) => {
+      const isRider = current.role === "rider";
+      const pickup = isRider && (current.pickup === "Choose your pickup location" || current.pickup.startsWith("Your live location"))
+        ? `Your live location · ±${location.accuracy} m`
+        : current.pickup;
+      return {
+        ...current,
+        pickup,
+        [isRider ? "riderLocation" : "driverLocation"]: location,
+        lastUpdated: Date.now(),
+      };
+    });
+  }, []);
+  const liveLocation = useLiveLocation({
+    role: state.role,
+    tracking: locationActive,
+    edgeMode: state.edgeMode,
+    initialLocation: state.role === "rider" ? state.riderLocation : state.driverLocation,
+    onLocation: saveDeviceLocation,
+  });
+  const { reading, permission } = liveLocation;
 
   useEffect(() => {
     const saved = realtime.load();
@@ -229,6 +217,8 @@ export default function AlongApp() {
       activeTab: "ride",
       driverOnline: current.driverOnline,
       appearance: current.appearance,
+      riderLocation: current.riderLocation,
+      driverLocation: current.driverLocation,
     }));
     setModal("none");
   };
@@ -249,8 +239,8 @@ export default function AlongApp() {
       notify("Sasi is offline — we’ll let you know when he’s back");
       return;
     }
-    if (state.edgeMode === "gps-denied") {
-      notify("Location access is needed to set your pickup");
+    if (state.role === "rider" && !state.riderLocation && state.pickup === "Choose your pickup location") {
+      notify("Allow location on the map or choose your pickup manually");
       return;
     }
     setPendingDestination(state.destination);
@@ -279,11 +269,11 @@ export default function AlongApp() {
     { id: "profile", label: "Profile", Icon: UserRound },
   ];
 
-  const isRideLive = ["requested", "accepted", "enroute", "nearby", "arrived", "active", "paused"].includes(state.stage);
   const visibleSpeed = state.edgeMode === "gps-low" || state.edgeMode === "stale"
     ? null
-    : reading.speedKmh ?? (isRideLive ? 28 : null);
-  const age = formatAge(state.lastUpdated, state.edgeMode);
+    : state.role === "driver" ? reading.speedKmh : state.driverLocation?.speedKmh ?? null;
+  const partnerTimestamp = state.role === "rider" ? state.driverLocation?.timestamp : state.riderLocation?.timestamp;
+  const age = formatAge(partnerTimestamp ?? state.lastUpdated, state.edgeMode);
 
   const driverTitle = useMemo(() => {
     if (!state.driverOnline) return "Sasi is offline";
@@ -314,12 +304,22 @@ export default function AlongApp() {
           visibleSpeed={visibleSpeed}
           reading={reading}
           permission={permission}
+          deviceLocation={liveLocation.location}
+          locationStatus={liveLocation.status}
+          mapFocusSignal={mapFocusSignal}
+          onAllowLocation={liveLocation.requestLocation}
+          onRetryLocation={liveLocation.retry}
+          onManualPickup={() => setModal("pickup")}
           onBrand={() => setModal("demo")}
           onCall={callPartner}
           onMessage={() => setModal("messages")}
           onRequest={() => { setSelectedKind("chocolate"); setModal("pitstop"); }}
           onDestination={() => { setPendingDestination(state.destination); setModal("destination"); }}
           onComeGetMe={startRequest}
+          onFindPartner={() => {
+            setMapFocusSignal((value) => value + 1);
+            notify("Showing both of you on the map");
+          }}
           onStage={setStage}
           onCancel={() => setModal("cancel")}
           onReady={() => { patchState({ riderReady: true }); notify("Sasi knows you’re coming downstairs"); }}
@@ -353,7 +353,6 @@ export default function AlongApp() {
             else notify("On iPhone, use Share → Add to Home Screen");
           }}
           onPatch={patchState}
-          onDemo={() => setModal("demo")}
         />
       )}
 
@@ -379,10 +378,26 @@ export default function AlongApp() {
 
             {modal === "book" && (
               <BookingModal
+                pickup={state.pickup}
                 destination={pendingDestination}
                 pitStops={state.pitStops}
                 onDestination={() => setModal("destination")}
                 onSubmit={submitRide}
+              />
+            )}
+
+            {modal === "pickup" && (
+              <PickupModal
+                value={state.pickup === "Choose your pickup location" ? "" : state.pickup}
+                onUseLocation={() => {
+                  setModal("none");
+                  liveLocation.requestLocation();
+                }}
+                onSelect={(value) => {
+                  patchState({ pickup: value });
+                  setModal("none");
+                  notify("Pickup location updated");
+                }}
               />
             )}
 
@@ -458,13 +473,20 @@ type RideProps = {
   age: string;
   visibleSpeed: number | null;
   reading: SpeedReading;
-  permission: string;
+  permission: "prompt" | "granted" | "denied" | "unavailable";
+  deviceLocation?: DeviceLocation;
+  locationStatus: "idle" | "finding" | "ready" | "error" | "paused";
+  mapFocusSignal: number;
+  onAllowLocation: () => void;
+  onRetryLocation: () => void;
+  onManualPickup: () => void;
   onBrand: () => void;
   onCall: () => void;
   onMessage: () => void;
   onRequest: () => void;
   onDestination: () => void;
   onComeGetMe: () => void;
+  onFindPartner: () => void;
   onStage: (stage: RideStage, message?: string) => void;
   onCancel: () => void;
   onReady: () => void;
@@ -477,44 +499,25 @@ function RideScreen(props: RideProps) {
   const { state, role } = props;
   return (
     <section className="screen ride-screen">
-      <DemoMap state={state} role={role} onBrand={props.onBrand} />
+      <LiveMap
+        key={role}
+        state={state}
+        role={role}
+        deviceLocation={props.deviceLocation}
+        permission={props.permission}
+        locationStatus={props.locationStatus}
+        focusSignal={props.mapFocusSignal}
+        visibleSpeed={props.visibleSpeed}
+        onBrand={props.onBrand}
+        onAllowLocation={props.onAllowLocation}
+        onRetryLocation={props.onRetryLocation}
+        onManualPickup={props.onManualPickup}
+      />
       <section className="ride-sheet">
         <div className="sheet-handle" />
         {role === "rider" ? <RiderRidePanel {...props} /> : <DriverRidePanel {...props} />}
       </section>
     </section>
-  );
-}
-
-function DemoMap({ state, role, onBrand }: { state: AppState; role: Role; onBrand: () => void }) {
-  const moving = ["accepted", "enroute", "nearby", "active"].includes(state.stage);
-  const routeVisible = state.stage !== "idle" && state.stage !== "declined" && state.stage !== "cancelled";
-  return (
-    <div className={`map-stage map-${state.edgeMode}`} aria-label="Live location map">
-      {state.edgeMode === "map-failed" ? (
-        <div className="map-fallback"><div><MapPin size={30} /><strong>Map view unavailable</strong><span>Pickup: {state.pickup}</span><small>2.4 km · about 8 min away</small></div></div>
-      ) : (
-        <>
-          <div className="map-grid" />
-          <div className="park park-one" /><div className="park park-two" />
-          <div className="road road-a" /><div className="road road-b" /><div className="road road-c" /><div className="road road-d" />
-          <span className="road-name road-name-a">100 Feet Rd</span><span className="road-name road-name-b">12th Main</span><span className="area-name">INDIRANAGAR</span>
-          {routeVisible && <div className={`route-path ${moving ? "moving" : ""}`}><i /><i /><i /><i /><i /><i /><i /></div>}
-          <div className={`map-person rider-map-marker ${role === "rider" ? "is-me" : ""}`}><span>{role === "rider" ? "You" : "Monu"}</span></div>
-          <div className={`map-person driver-map-marker ${moving ? "marker-moving" : ""} ${role === "driver" ? "is-me" : ""}`}><div className="sasi-avatar-crop sasi-map-photo"><img src={SASI_PROFILE_PHOTO} alt="Sasi" width={48} height={48} /></div><span>{role === "driver" ? "You" : "Sasi"}</span></div>
-          {state.stage === "active" && <div className="destination-pin"><MapPin size={18} /><span>{state.destination || "Home"}</span></div>}
-        </>
-      )}
-
-      <header className="map-header">
-        <button className="avatar-button" aria-label="Open Sasi profile"><span className="sasi-avatar-crop sasi-header-photo"><img src={SASI_PROFILE_PHOTO} alt="Sasi" width={88} height={88} /></span><i /></button>
-        <button className="wordmark" onClick={onBrand} aria-label="Open preview controls"><span>A</span>along</button>
-        <button className="icon-button notification-button" aria-label="Notifications"><Bell size={20} /><i>2</i></button>
-      </header>
-
-      {state.sharing && <div className="sharing-chip is-sharing"><Radio size={13} />{role === "rider" ? "Sasi is sharing live location" : "Sharing live location with Monu"}</div>}
-      <button className="locate-button" aria-label="Center map"><LocateFixed size={21} /></button>
-    </div>
   );
 }
 
@@ -573,7 +576,7 @@ function RiderRidePanel(props: RideProps) {
       {state.stage === "idle" && (
         <>
           <div className="quick-actions">
-            <button onClick={() => props.onStage("idle", "Centered on Sasi’s last location")}><span><Navigation2 /></span>Find him</button>
+            <button onClick={props.onFindPartner}><span><Navigation2 /></span>Find him</button>
             <button onClick={props.onDestination}><span><MapPin /></span>Where to?</button>
             <button onClick={props.onCall}><span><Phone /></span>Call</button>
             <button onClick={props.onRequest}><span><Plus /></span>Request</button>
@@ -703,8 +706,8 @@ function UsScreen() {
   );
 }
 
-type ProfileProps = { state: AppState; permission: string; installPrompt: InstallPrompt | null; onInstall: () => void; onPatch: (patch: Partial<AppState>) => void; onDemo: () => void };
-function ProfileScreen({ state, permission, installPrompt, onInstall, onPatch, onDemo }: ProfileProps) {
+type ProfileProps = { state: AppState; permission: string; installPrompt: InstallPrompt | null; onInstall: () => void; onPatch: (patch: Partial<AppState>) => void };
+function ProfileScreen({ state, permission, installPrompt, onInstall, onPatch }: ProfileProps) {
   const [notifications, setNotifications] = useState(true);
   return (
     <section className="screen content-screen profile-screen">
@@ -728,8 +731,13 @@ function ContentHeader({ kicker, title, subtitle }: { kicker: string; title: str
   return <header className="content-header"><div className="content-top"><div className="mini-wordmark"><span>A</span>along</div><button className="icon-button"><Bell size={19} /></button></div><span>{kicker}</span><h1>{title}</h1><p>{subtitle}</p></header>;
 }
 
-function BookingModal({ destination, pitStops, onDestination, onSubmit }: { destination: string; pitStops: PitStop[]; onDestination: () => void; onSubmit: () => void }) {
-  return <div className="booking-modal"><span className="modal-kicker">YOUR RIDE</span><h2>Come get me</h2><p>Sasi will receive your current pickup and anything you need on the way.</p><div className="booking-route"><div><i /><span><small>PICKUP NOW</small>Indiranagar · your location</span></div><button onClick={onDestination}><b /><span><small>DESTINATION · OPTIONAL</small>{destination || "Where are you going?"}</span><ChevronRight size={17} /></button></div>{pitStops.length > 0 && <div className="booking-requests"><span>{pitStops.map((item) => item.emoji).join(" ")}</span><p><strong>{pitStops.length} request{pitStops.length > 1 ? "s" : ""} attached</strong>Sasi can confirm each one</p></div>}<div className="privacy-inline"><ShieldCheck size={17} /><span>Live sharing starts after Sasi accepts.</span></div><button className="primary-button" onClick={onSubmit}>Send to Sasi <ArrowRight size={18} /></button><small className="modal-footnote">No destination needed. You can decide together later.</small></div>;
+function BookingModal({ pickup, destination, pitStops, onDestination, onSubmit }: { pickup: string; destination: string; pitStops: PitStop[]; onDestination: () => void; onSubmit: () => void }) {
+  return <div className="booking-modal"><span className="modal-kicker">YOUR RIDE</span><h2>Come get me</h2><p>Sasi will receive your current pickup and anything you need on the way.</p><div className="booking-route"><div><i /><span><small>PICKUP NOW</small>{pickup}</span></div><button onClick={onDestination}><b /><span><small>DESTINATION · OPTIONAL</small>{destination || "Where are you going?"}</span><ChevronRight size={17} /></button></div>{pitStops.length > 0 && <div className="booking-requests"><span>{pitStops.map((item) => item.emoji).join(" ")}</span><p><strong>{pitStops.length} request{pitStops.length > 1 ? "s" : ""} attached</strong>Sasi can confirm each one</p></div>}<div className="privacy-inline"><ShieldCheck size={17} /><span>Live sharing starts after Sasi accepts.</span></div><button className="primary-button" onClick={onSubmit}>Send to Sasi <ArrowRight size={18} /></button><small className="modal-footnote">No destination needed. You can decide together later.</small></div>;
+}
+
+function PickupModal({ value, onUseLocation, onSelect }: { value: string; onUseLocation: () => void; onSelect: (value: string) => void }) {
+  const [pickup, setPickup] = useState(value);
+  return <div className="destination-modal"><span className="modal-kicker">PICKUP</span><h2>Where should Sasi meet you?</h2><div className="search-box"><MapPin size={19} /><input value={pickup} onChange={(event) => setPickup(event.target.value)} placeholder="Search or enter an address" aria-label="Pickup address" /><button onClick={() => pickup && onSelect(pickup)} disabled={!pickup} aria-label="Use this pickup"><ArrowRight size={17} /></button></div><button className="current-location" onClick={onUseLocation}><Crosshair size={18} /><span><strong>Use my live location</strong>Ask the browser for your precise position</span><ChevronRight size={17} /></button><h3>Saved places</h3><div className="places-list">{places.map(({ title, address, icon: Icon }) => <button key={title} onClick={() => onSelect(`${title} · ${address}`)}><span><Icon size={18} /></span><p><strong>{title}</strong>{address}</p><ChevronRight size={16} /></button>)}</div></div>;
 }
 
 function DestinationModal({ value, onChange, onSelect }: { value: string; onChange: (value: string) => void; onSelect: (value: string) => void }) {

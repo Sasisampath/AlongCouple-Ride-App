@@ -5,6 +5,19 @@ export type SpeedReading = {
   lastUpdated: number | null;
 };
 
+export type LocationPermission = "prompt" | "granted" | "denied" | "unavailable";
+
+export type DeviceLocation = {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  heading: number | null;
+  speedKmh: number | null;
+  speedSource: SpeedReading["source"];
+  timestamp: number;
+  source: "device" | "demo";
+};
+
 type Point = { latitude: number; longitude: number; time: number; accuracy: number };
 
 const toRad = (value: number) => (value * Math.PI) / 180;
@@ -63,3 +76,17 @@ export class SpeedSmoother {
     };
   }
 }
+
+export const snapshotPosition = (
+  position: GeolocationPosition,
+  reading: SpeedReading,
+): DeviceLocation => ({
+  latitude: position.coords.latitude,
+  longitude: position.coords.longitude,
+  accuracy: Math.round(position.coords.accuracy),
+  heading: position.coords.heading,
+  speedKmh: reading.speedKmh,
+  speedSource: reading.source,
+  timestamp: position.timestamp || Date.now(),
+  source: "device",
+});

@@ -13,6 +13,12 @@ test("Along ships its product shell and primary ride actions", async () => {
 test("PWA and map provider configuration are present", async () => {
   const layout = await readFile(new URL("../app/layout.tsx", import.meta.url), "utf8");
   const manifest = await readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8");
+  const map = await readFile(new URL("../app/components/live-map.tsx", import.meta.url), "utf8");
+  const adapter = await readFile(new URL("../app/lib/map-adapter.ts", import.meta.url), "utf8");
   assert.match(layout, /manifest: "\/manifest\.webmanifest"/);
   assert.equal(JSON.parse(manifest).display, "standalone");
+  assert.match(map, /maplibre-gl/);
+  assert.match(map, /Allow location/);
+  assert.match(adapter, /router\.project-osrm\.org/);
+  assert.doesNotMatch(map, /DEMO MAP/);
 });
