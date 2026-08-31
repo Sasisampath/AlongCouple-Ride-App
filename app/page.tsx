@@ -512,9 +512,8 @@ function DemoMap({ state, role, onBrand }: { state: AppState; role: Role; onBran
         <button className="icon-button notification-button" aria-label="Notifications"><Bell size={20} /><i>2</i></button>
       </header>
 
-      <div className={`sharing-chip ${state.sharing ? "is-sharing" : ""}`}><Radio size={13} />{state.sharing ? (role === "rider" ? "Sasi is sharing location" : "Location shared with her") : state.stage === "idle" || state.stage === "requested" ? (role === "rider" ? "Sasi shared 2 min ago" : "Normal mode · not sharing") : "Location sharing paused"}</div>
+      {state.sharing && <div className="sharing-chip is-sharing"><Radio size={13} />{role === "rider" ? "Sasi is sharing live location" : "Sharing live location with Monu"}</div>}
       <button className="locate-button" aria-label="Center map"><LocateFixed size={21} /></button>
-      <div className="map-provider">DEMO MAP</div>
     </div>
   );
 }
@@ -715,7 +714,6 @@ function ProfileScreen({ state, permission, installPrompt, onInstall, onPatch, o
       <div className="settings-group"><h3>Privacy & safety</h3><SettingsRow Icon={Radio} title="Live location" detail={state.sharing ? "Shared during active rides" : "Sharing is paused"} control={<Toggle on={state.sharing} onClick={() => onPatch({ sharing: !state.sharing })} />} /><SettingsRow Icon={Crosshair} title="Location permission" detail={permission === "granted" ? "Precise location allowed" : permission === "denied" ? "Permission denied" : "Ask when needed"} /><SettingsRow Icon={ShieldCheck} title="Privacy promise" detail="Never tracked silently or 24/7" /></div>
       <div className="settings-group"><h3>App</h3><SettingsRow Icon={BellRing} title="Notifications" detail="Ride and request updates" control={<Toggle on={notifications} onClick={() => setNotifications(!notifications)} />} /><SettingsRow Icon={Moon} title="Appearance" detail={state.appearance === "light" ? "Soft light" : "Night ride"} control={<Toggle on={state.appearance === "dark"} onClick={() => onPatch({ appearance: state.appearance === "light" ? "dark" : "light" })} />} /><button className="setting-row" onClick={onInstall}><span className="setting-icon"><Navigation size={18} /></span><span><strong>{installPrompt ? "Install Along" : "Add to Home Screen"}</strong><small>Faster launch, full-screen feel</small></span><ChevronRight size={17} /></button><SettingsRow Icon={Info} title="About Along" detail="Made for two · v1.0" /></div>
       <div className="web-limit-note"><BatteryLow size={18} /><p><strong>A note about background tracking</strong>Mobile web browsers—especially iPhone when locked—can pause location updates. For the freshest location, keep Along open during an active ride.</p></div>
-      <button className="version-button" onClick={onDemo}>Along demo controls · build 1.0</button>
     </section>
   );
 }
