@@ -10,6 +10,18 @@ test("Along ships its product shell and primary ride actions", async () => {
   assert.match(page, /DriverRidePanel/);
 });
 
+test("premium two-person onboarding and request details are present", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const design = await readFile(new URL("../app/design-system.css", import.meta.url), "utf8");
+  assert.match(page, /Know when your person is actually on the way/);
+  assert.match(page, /How do you usually travel together/);
+  assert.match(page, /Ride.*Requests.*Us.*Profile/s);
+  assert.match(page, /useState\(""\)/);
+  assert.match(design, /--coral:\s*#e96562/i);
+  assert.match(design, /--green:\s*#16855b/i);
+  assert.match(design, /env\(safe-area-inset-bottom\)/);
+});
+
 test("PWA and map provider configuration are present", async () => {
   const layout = await readFile(new URL("../app/layout.tsx", import.meta.url), "utf8");
   const manifest = await readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8");

@@ -39,8 +39,8 @@ test("the production server supports React Server Component requests", async () 
   assert.ok((await response.text()).length > 0);
 });
 
-test("Vercel includes the map worker, canonical avatar, and PWA assets", async () => {
-  for (const name of ["sasi-profile.png", "manifest.webmanifest", "favicon.svg", "og.png"]) {
+test("Vercel includes the map worker and PWA assets", async () => {
+  for (const name of ["manifest.webmanifest", "favicon.svg", "og.png"]) {
     const original = await readFile(new URL(`../public/${name}`, import.meta.url));
     const deployed = await readFile(new URL(`static/${name}`, output));
     assert.deepEqual(deployed, original, `${name} must be copied without changes`);

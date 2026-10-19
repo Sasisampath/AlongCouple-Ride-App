@@ -37,6 +37,7 @@ import {
   ShoppingBag,
   SignalLow,
   Sparkles,
+  Store,
   TimerReset,
   UserRound,
   Users,
@@ -107,6 +108,13 @@ type Modal = "none" | "book" | "pickup" | "destination" | "messages" | "demo" | 
 type InstallPrompt = Event & { prompt: () => Promise<void> };
 
 const SASI_PROFILE_PHOTO = "/sasi-profile.png";
+const ONBOARDING_KEY = "along.onboarding.v1";
+
+const requestStatusCopy: Record<PitStop["status"], string> = {
+  requested: "Waiting",
+  secured: "Picked up",
+  unavailable: "Couldn’t get it",
+};
 
 const formatAge = (timestamp: number, edgeMode: EdgeMode) => {
   if (edgeMode === "stale") return "12 min ago";
@@ -117,10 +125,12 @@ const formatAge = (timestamp: number, edgeMode: EdgeMode) => {
 export default function AlongApp() {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
   const [hydrated, setHydrated] = useState(false);
+  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
+  const [profileName, setProfileName] = useState("Monu");
   const [modal, setModal] = useState<Modal>("none");
   const [toast, setToast] = useState("");
   const [selectedKind, setSelectedKind] = useState<PitStop["kind"]>("chocolate");
-  const [chocolate, setChocolate] = useState("Dairy Milk Silk");
+  const [chocolate, setChocolate] = useState("");
   const [customRequest, setCustomRequest] = useState("");
   const [pendingDestination, setPendingDestination] = useState("");
   const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(null);
@@ -158,6 +168,8 @@ export default function AlongApp() {
     // Hydrate the locally recovered ride only after the browser is available.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (saved) setState({ ...INITIAL_STATE, ...saved, lastUpdated: Date.now() });
+    setProfileName(window.localStorage.getItem("along.profile.name") || (saved?.role === "driver" ? "Sasi" : "Monu"));
+    setOnboardingComplete(Boolean(saved) || window.localStorage.getItem(ONBOARDING_KEY) === "complete");
     setHydrated(true);
     const install = (event: Event) => {
       event.preventDefault();
@@ -168,8 +180,8 @@ export default function AlongApp() {
   }, []);
 
   useEffect(() => {
-    if (hydrated) realtime.save(state);
-  }, [hydrated, state]);
+    if (hydrated && onboardingComplete) realtime.save(state);
+  }, [hydrated, onboardingComplete, state]);
 
   useEffect(() => {
     const onOnline = () => setState((current) => current.edgeMode === "offline" ? { ...current, edgeMode: "normal", lastUpdated: Date.now() } : current);
@@ -288,7 +300,21 @@ export default function AlongApp() {
     return stageLabel[state.stage];
   }, [state.driverOnline, state.stage]);
 
-  if (!hydrated) return <main className="app-shell loading-shell" aria-label="Opening Along" />;
+  if (!hydrated || onboardingComplete === null) return <main className="app-shell loading-shell" aria-label="Opening Along" />;
+
+  if (!onboardingComplete) {
+    return (
+      <Onboarding
+        onComplete={(name, role) => {
+          window.localStorage.setItem(ONBOARDING_KEY, "complete");
+          window.localStorage.setItem("along.profile.name", name);
+          setProfileName(name);
+          patchState({ role });
+          setOnboardingComplete(true);
+        }}
+      />
+    );
+  }
 
   return (
     <main className={`app-shell ${state.appearance === "dark" ? "theme-dark" : ""}`}>
@@ -314,6 +340,8 @@ export default function AlongApp() {
           onCall={callPartner}
           onMessage={() => setModal("messages")}
           onRequest={() => { setSelectedKind("chocolate"); setModal("pitstop"); }}
+          onCoffee={() => { setSelectedKind("coffee"); setModal("pitstop"); }}
+          onAddStop={() => { setSelectedKind("stop"); setModal("pitstop"); }}
           onDestination={() => { setPendingDestination(state.destination); setModal("destination"); }}
           onComeGetMe={startRequest}
           onFindPartner={() => {
@@ -346,6 +374,7 @@ export default function AlongApp() {
       {state.activeTab === "profile" && (
         <ProfileScreen
           state={state}
+          profileName={profileName}
           permission={permission}
           installPrompt={installPrompt}
           onInstall={async () => {
@@ -414,6 +443,7 @@ export default function AlongApp() {
             {modal === "pitstop" && (
               <PitStopModal
                 kind={selectedKind}
+                partnerName={state.role === "rider" ? "Sasi" : "Monu"}
                 chocolate={chocolate}
                 custom={customRequest}
                 onKind={setSelectedKind}
@@ -466,6 +496,45 @@ function EdgeBanner({ mode }: { mode: EdgeMode }) {
   return <div className="edge-banner"><Icon size={16} /><span><strong>{item.title}</strong>{item.detail}</span></div>;
 }
 
+function SasiAvatar({ className = "" }: { className?: string }) {
+  return (
+    <span className={`person-avatar sasi-avatar ${className}`.trim()} aria-label="Sasi">
+      <span aria-hidden="true">S</span>
+      <img
+        src={SASI_PROFILE_PHOTO}
+        alt="Sasi"
+        onError={(event) => { event.currentTarget.hidden = true; }}
+      />
+    </span>
+  );
+}
+
+function PlaceCard({ className, icon, label, detail }: { className: string; icon: React.ReactNode; label: string; detail: string }) {
+  return <article className={`place-card ${className}`}><span>{icon}</span><div><strong>{label}</strong><p>{detail}</p></div></article>;
+}
+
+function Onboarding({ onComplete }: { onComplete: (name: string, role: Role) => void }) {
+  const [step, setStep] = useState(0);
+  const [name, setName] = useState("");
+  const [role, setRole] = useState<Role | null>(null);
+  const partner = role === "driver" ? "your pillion" : "the person who picks you up";
+
+  return (
+    <main className="app-shell onboarding-shell">
+      <div className="onboarding-progress" aria-label={`Step ${step + 1} of 5`}><i style={{ width: `${((step + 1) / 5) * 100}%` }} /></div>
+      {step === 0 && <section className="onboarding-page welcome-page"><div className="onboarding-brand"><span>A</span>along</div><div className="connection-visual"><div className="onboard-avatar monu">M</div><svg viewBox="0 0 180 74" aria-hidden="true"><path d="M26 45 C62 4 112 72 154 27" /><circle cx="89" cy="37" r="4" /></svg><SasiAvatar className="onboard-avatar" /></div><div className="onboarding-copy"><span>Made for two</span><h1>Know when your person is actually on the way.</h1><p>Live journey awareness for two people.</p></div><button className="onboarding-cta" onClick={() => setStep(1)}>Get started <ArrowRight size={20} /></button></section>}
+
+      {step === 1 && <section className="onboarding-page"><button className="onboarding-back" onClick={() => setStep(0)} aria-label="Back">←</button><div className="onboarding-copy"><span>First, you</span><h1>What should we call you?</h1><p>This is how your person will see you in Along.</p></div><label className="name-field"><span>Your name</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" maxLength={24} /></label><button className="onboarding-cta" disabled={!name.trim()} onClick={() => setStep(2)}>Continue <ArrowRight size={20} /></button></section>}
+
+      {step === 2 && <section className="onboarding-page"><button className="onboarding-back" onClick={() => setStep(1)} aria-label="Back">←</button><div className="onboarding-copy"><span>Your usual role</span><h1>How do you usually travel together?</h1><p>You can still switch sides in the private preview.</p></div><div className="role-cards"><button className={role === "driver" ? "selected" : ""} onClick={() => setRole("driver")}><i><Bike size={28} /></i><span><strong>Rider</strong><b>I’m usually the one riding</b><small>I travel to pick up my person.</small></span>{role === "driver" && <CheckCircle2 size={22} />}</button><button className={role === "rider" ? "selected" : ""} onClick={() => setRole("rider")}><i><MapPin size={28} /></i><span><strong>Pillion</strong><b>I’m usually the one waiting</b><small>I track my person and request pickup.</small></span>{role === "rider" && <CheckCircle2 size={22} />}</button></div><button className="onboarding-cta" disabled={!role} onClick={() => setStep(3)}>Continue <ArrowRight size={20} /></button></section>}
+
+      {step === 3 && <section className="onboarding-page pairing-page"><button className="onboarding-back" onClick={() => setStep(2)} aria-label="Back">←</button><div className="onboarding-copy"><span>Just the two of you</span><h1>{role === "driver" ? "Who rides pillion with you?" : "Who usually picks you up?"}</h1><p>Along stays private. Only you and your person can join this space.</p></div><div className="pairing-card"><div className="pairing-avatars"><div className="onboard-avatar monu">{name.trim().charAt(0).toUpperCase()}</div><span><Heart size={18} /></span><div className="onboard-avatar empty"><UserRound size={24} /></div></div><strong>Invite {partner}</strong><small>Share a one-time private connection link.</small></div><button className="onboarding-cta" onClick={() => setStep(4)}>Invite your person <Send size={19} /></button></section>}
+
+      {step === 4 && <section className="onboarding-page connected-page"><div className="connected-avatars"><div className="onboard-avatar monu">{name.trim().charAt(0).toUpperCase()}</div><span><Heart size={18} fill="currentColor" /></span><SasiAvatar className="onboard-avatar" /></div><div className="success-ring"><Check size={25} /></div><div className="onboarding-copy"><span>Private connection ready</span><h1>You’re connected</h1><p>Now you’ll both know when the other is actually on the way.</p></div><button className="onboarding-cta" onClick={() => onComplete(name.trim(), role || "rider")}>Open Along <ArrowRight size={20} /></button></section>}
+    </main>
+  );
+}
+
 type RideProps = {
   state: AppState;
   role: Role;
@@ -484,6 +553,8 @@ type RideProps = {
   onCall: () => void;
   onMessage: () => void;
   onRequest: () => void;
+  onCoffee: () => void;
+  onAddStop: () => void;
   onDestination: () => void;
   onComeGetMe: () => void;
   onFindPartner: () => void;
@@ -561,6 +632,7 @@ function RiderRidePanel(props: RideProps) {
   return (
     <div className="rider-panel">
       <div className="partner-status-row">
+        <SasiAvatar className="ride-partner-avatar" />
         <div>
           <span className={`status-kicker ${state.driverOnline ? "available" : "offline"}`}><i />{state.driverOnline ? stageLabel[state.stage] : "Offline"}</span>
           <h1>{props.driverTitle}</h1>
@@ -576,10 +648,10 @@ function RiderRidePanel(props: RideProps) {
       {state.stage === "idle" && (
         <>
           <div className="quick-actions">
-            <button onClick={props.onFindPartner}><span><Navigation2 /></span>Find him</button>
-            <button onClick={props.onDestination}><span><MapPin /></span>Where to?</button>
-            <button onClick={props.onCall}><span><Phone /></span>Call</button>
-            <button onClick={props.onRequest}><span><Plus /></span>Request</button>
+            <button onClick={props.onRequest}><span><Gift /></span>Treat</button>
+            <button onClick={props.onCoffee}><span><Coffee /></span>Coffee</button>
+            <button onClick={props.onAddStop}><span><MapPin /></span>Add stop</button>
+            <button onClick={props.onMessage}><span><MessageCircle /></span>Message</button>
           </div>
           <button className="come-button" onClick={props.onComeGetMe} disabled={!state.driverOnline}><span>{state.driverOnline ? "Come get me" : "Sasi is offline"}<small>{state.driverOnline ? "Pickup from your current location" : "We’ll let you know when he’s back"}</small></span><i><ArrowRight size={20} /></i></button>
           <button className="destination-link" onClick={props.onDestination}><MapPin size={14} />{state.destination || "Add a destination now or decide together"}<ChevronRight size={15} /></button>
@@ -588,11 +660,12 @@ function RiderRidePanel(props: RideProps) {
 
       {inMotion && (
         <div className="live-ride-content">
+          {["accepted", "enroute", "nearby"].includes(state.stage) && <div className="journey-eta"><strong>{state.stage === "nearby" ? "2" : "12"}<small> min</small></strong><span>{state.stage === "nearby" ? "Almost with you" : "4.2 km away"}</span></div>}
           <RideTimeline stage={state.stage} />
           {state.destination && <div className="route-summary"><div><i /><span><small>Pickup</small>{state.pickup}</span></div><div><b /><span><small>Destination</small>{state.destination}</span></div></div>}
           {state.pitStops.length > 0 && (
             <div className="active-requests">
-              {state.pitStops.map((item) => <div key={item.id}><span>{item.emoji}</span><p><strong>{item.title}</strong>{item.detail}</p><em className={`request-status ${item.status}`}>{item.status === "secured" ? "Secured" : item.status}</em></div>)}
+              {state.pitStops.map((item) => <div key={item.id}><span>{item.emoji}</span><p><strong>{item.status === "secured" ? `${item.title} secured` : item.title}</strong>{item.detail}</p><em className={`request-status ${item.status}`}>{requestStatusCopy[item.status]}</em></div>)}
             </div>
           )}
           {["accepted", "enroute", "nearby"].includes(state.stage) && (
@@ -681,10 +754,10 @@ function RideTimeline({ stage }: { stage: RideStage }) {
 function RequestsScreen({ requests, onAdd, onRemove }: { requests: PitStop[]; onAdd: (kind: PitStop["kind"]) => void; onRemove: (id: string) => void }) {
   return (
     <section className="screen content-screen requests-screen">
-      <ContentHeader kicker="LITTLE THINGS" title="What should he bring?" subtitle="Add it before pickup or while you’re on the way." />
+      <ContentHeader kicker="REQUESTS" title="What should they bring?" subtitle="Add it before pickup or while they’re on the way." />
       <div className="request-grid">{requestKinds.map((item) => <button key={item.kind} onClick={() => onAdd(item.kind)}><span>{item.emoji}</span><strong>{item.title}</strong><small>{item.detail}</small><i><Plus size={16} /></i></button>)}</div>
-      <div className="section-heading"><div><span>THIS RIDE</span><h2>Your requests</h2></div><em>{requests.length}</em></div>
-      {requests.length ? <div className="request-list">{requests.map((item) => <div key={item.id}><span>{item.emoji}</span><p><strong>{item.title}</strong>{item.detail}</p><em className={`request-status ${item.status}`}>{item.status}</em><button onClick={() => onRemove(item.id)} aria-label={`Remove ${item.title}`}><X size={16} /></button></div>)}</div> : <div className="empty-card"><Sparkles size={22} /><strong>Nothing extra yet</strong><span>Your requests will stay here during the ride.</span></div>}
+      <div className="section-heading"><div><span>This ride</span><h2>Your requests</h2></div><em>{requests.length}</em></div>
+      {requests.length ? <div className="request-list">{requests.map((item) => <div key={item.id}><span>{item.emoji}</span><p><strong>{item.status === "secured" ? `${item.title} secured` : item.title}</strong>{item.detail}</p><em className={`request-status ${item.status}`}>{requestStatusCopy[item.status]}</em><button onClick={() => onRemove(item.id)} aria-label={`Remove ${item.title}`}><X size={16} /></button></div>)}</div> : <div className="empty-card"><Sparkles size={22} /><strong>Nothing extra yet</strong><span>Little requests for the next ride will appear here.</span></div>}
       <div className="request-note"><Info size={16} /><span>He can mark an item secured or unavailable. You’ll always see the update.</span></div>
     </section>
   );
@@ -693,26 +766,31 @@ function RequestsScreen({ requests, onAdd, onRemove }: { requests: PitStop[]; on
 function UsScreen() {
   return (
     <section className="screen content-screen us-screen">
-      <ContentHeader kicker="SINCE NOVEMBER 2024" title="184 km, just us." subtitle="The routes, treats, and little detours you made together." />
+      <ContentHeader kicker="US" title="184 km together" subtitle="The routes, treats, and little detours that belong to just you two." />
       <div className="us-hero">
-        <div className="memory-map"><div className="memory-road a" /><div className="memory-road b" /><div className="memory-road c" /><span className="memory-pin one">⌂</span><span className="memory-pin two">☕</span><span className="memory-pin three">♡</span><div className="memory-route" /></div>
-        <div className="us-stats"><span><strong>24</strong>rides together</span><span><strong>184</strong>kilometres</span><span><strong>12</strong>treat stops</span></div>
+        <div className="memory-map"><div className="memory-road a" /><div className="memory-road b" /><div className="memory-road c" /><span className="memory-pin one"><HomeIcon size={15} /></span><span className="memory-pin two"><Coffee size={15} /></span><span className="memory-pin three"><Heart size={14} /></span><div className="memory-route" /><div className="hero-pair"><span>M</span><SasiAvatar /></div></div>
+        <div className="us-stats"><span><strong>24</strong>rides</span><span><strong>11</strong>coffee stops</span><span><strong>8</strong>chocolate missions</span><span><strong>6</strong>late-night pickups</span></div>
       </div>
-      <div className="section-heading"><div><span>OUR FAVOURITES</span><h2>Always worth the detour</h2></div></div>
-      <div className="favorite-places"><div className="place-card sunset"><span>01</span><div><small>SUNDAY PLACE</small><strong>Ulsoor Lake</strong><p>4 rides · last visited Aug 18</p></div></div><div className="place-card night"><span>02</span><div><small>COFFEE PLACE</small><strong>Blue Tokai</strong><p>7 stops · our usual table</p></div></div></div>
-      <div className="section-heading"><div><span>RECENT MEMORY</span><h2>Rain ride to Church Street</h2></div><button>See all</button></div>
-      <article className="memory-card"><div className="memory-art"><span>JUL<br/>27</span><i>☂</i></div><div><strong>“Best filter coffee after the rain.”</strong><p>Church Street · 11.2 km · 48 min</p><div className="memory-chips"><span>☕ 1 coffee</span><span>🍫 Silk</span></div></div></article>
+      <div className="section-heading"><div><span>Saved together</span><h2>Our places</h2></div></div>
+      <div className="favorite-places"><PlaceCard className="home" icon={<HomeIcon />} label="Home" detail="18 arrivals together" /><PlaceCard className="cafe" icon={<Coffee />} label="Favourite café" detail="7 stops together" /><PlaceCard className="office" icon={<Store />} label="Her office" detail="12 pickups together" /><PlaceCard className="beach" icon={<Navigation2 />} label="Beach road" detail="3 sunset rides" /></div>
+      <div className="section-heading"><div><span>Recent</span><h2>Journeys</h2></div><button>See all</button></div>
+      <article className="memory-card"><div className="memory-art"><span>SAT<br/>8:42</span><i>☂</i></div><div><strong>Sasi → Monu → Writer’s Café</strong><p>11.2 km · 34 min</p><div className="memory-chips"><span>🍫 Chocolate secured</span></div></div></article>
+      <article className="memory-card"><div className="memory-art warm"><span>THU<br/>6:15</span><i>☕</i></div><div><strong>Office → Blue Tokai → Home</strong><p>8.6 km · 29 min</p><div className="memory-chips"><span>☕ Coffee stop</span></div></div></article>
     </section>
   );
 }
 
-type ProfileProps = { state: AppState; permission: string; installPrompt: InstallPrompt | null; onInstall: () => void; onPatch: (patch: Partial<AppState>) => void };
-function ProfileScreen({ state, permission, installPrompt, onInstall, onPatch }: ProfileProps) {
+type ProfileProps = { state: AppState; profileName: string; permission: string; installPrompt: InstallPrompt | null; onInstall: () => void; onPatch: (patch: Partial<AppState>) => void };
+function ProfileScreen({ state, profileName, permission, installPrompt, onInstall, onPatch }: ProfileProps) {
   const [notifications, setNotifications] = useState(true);
+  const isPillion = state.role === "rider";
   return (
     <section className="screen content-screen profile-screen">
-      <ContentHeader kicker="YOUR SPACE" title="Monu" subtitle="Private by design. Only you and Sasi are here." />
-      <div className="partner-card"><div className="partner-avatars"><span>M</span><i>♡</i><span className="partner-photo"><img src={SASI_PROFILE_PHOTO} alt="Sasi" width={128} height={128} /></span></div><div><small>YOUR PARTNER</small><strong>Sasi</strong><p>Driver · White Ather 450X</p></div><button><Phone size={18} /></button></div>
+      <ContentHeader kicker="PROFILE" title={profileName} subtitle={`${isPillion ? "Pillion" : "Rider"} · private by design`} />
+      <div className="profile-identity"><div className={`profile-avatar ${isPillion ? "monu" : "sasi"}`}>{isPillion ? "M" : <SasiAvatar />}</div><div><strong>{profileName}</strong><span>{isPillion ? "Usually waiting" : "Usually riding"}</span></div></div>
+      <div className="section-heading"><div><span>Connected</span><h2>Your person</h2></div></div>
+      <div className="partner-card"><div className="partner-avatars"><span className="monu-avatar">M</span><i><Heart size={10} fill="currentColor" /></i><SasiAvatar className="partner-photo" /></div><div><small>YOUR PERSON</small><strong>{isPillion ? "Sasi" : "Monu"}</strong><p>{isPillion ? "Rider · White Ather 450X" : "Pillion · Connected"}</p></div><button aria-label={`Call ${isPillion ? "Sasi" : "Monu"}`}><Phone size={18} /></button></div>
+      <div className="partner-actions"><button>View profile</button><button>Manage connection</button></div>
       <div className="settings-group"><h3>Places & rides</h3><SettingsRow Icon={MapPin} title="Saved places" detail="Home, Work, 3 more" /><SettingsRow Icon={Route} title="Ride history" detail="24 rides together" /><SettingsRow Icon={Users} title="Emergency contacts" detail="2 people" /></div>
       <div className="settings-group"><h3>Privacy & safety</h3><SettingsRow Icon={Radio} title="Live location" detail={state.sharing ? "Shared during active rides" : "Sharing is paused"} control={<Toggle on={state.sharing} onClick={() => onPatch({ sharing: !state.sharing })} />} /><SettingsRow Icon={Crosshair} title="Location permission" detail={permission === "granted" ? "Precise location allowed" : permission === "denied" ? "Permission denied" : "Ask when needed"} /><SettingsRow Icon={ShieldCheck} title="Privacy promise" detail="Never tracked silently or 24/7" /></div>
       <div className="settings-group"><h3>App</h3><SettingsRow Icon={BellRing} title="Notifications" detail="Ride and request updates" control={<Toggle on={notifications} onClick={() => setNotifications(!notifications)} />} /><SettingsRow Icon={Moon} title="Appearance" detail={state.appearance === "light" ? "Soft light" : "Night ride"} control={<Toggle on={state.appearance === "dark"} onClick={() => onPatch({ appearance: state.appearance === "light" ? "dark" : "light" })} />} /><button className="setting-row" onClick={onInstall}><span className="setting-icon"><Navigation size={18} /></span><span><strong>{installPrompt ? "Install Along" : "Add to Home Screen"}</strong><small>Faster launch, full-screen feel</small></span><ChevronRight size={17} /></button><SettingsRow Icon={Info} title="About Along" detail="Made for two · v1.0" /></div>
@@ -749,9 +827,10 @@ function MessagesModal({ onSend }: { onSend: (message: string) => void }) {
   return <div className="messages-modal"><span className="modal-kicker">QUICK MESSAGE</span><h2>Tell Sasi</h2><div className="message-grid">{quickMessages.map((item) => <button key={item} onClick={() => onSend(item)}>{item}</button>)}</div><div className="message-input"><input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Write something…" /><button disabled={!message} onClick={() => onSend(message)}><Send size={17} /></button></div></div>;
 }
 
-function PitStopModal({ kind, chocolate, custom, onKind, onChocolate, onCustom, onAdd, duringRide }: { kind: PitStop["kind"]; chocolate: string; custom: string; onKind: (kind: PitStop["kind"]) => void; onChocolate: (value: string) => void; onCustom: (value: string) => void; onAdd: () => void; duringRide: boolean }) {
+function PitStopModal({ kind, partnerName, chocolate, custom, onKind, onChocolate, onCustom, onAdd, duringRide }: { kind: PitStop["kind"]; partnerName: string; chocolate: string; custom: string; onKind: (kind: PitStop["kind"]) => void; onChocolate: (value: string) => void; onCustom: (value: string) => void; onAdd: () => void; duringRide: boolean }) {
   const template = requestKinds.find((item) => item.kind === kind)!;
-  return <div className="pitstop-modal"><span className="modal-kicker">{duringRide ? "ADD TO THIS RIDE" : "ASK AHEAD"}</span><h2>A little stop?</h2><div className="kind-scroll">{requestKinds.map((item) => <button key={item.kind} className={kind === item.kind ? "active" : ""} onClick={() => onKind(item.kind)}><span>{item.emoji}</span>{item.title}</button>)}</div><div className="request-detail-hero"><span>{template.emoji}</span><div><small>REQUESTING</small><strong>{template.title}</strong><p>{template.detail}</p></div></div>{kind === "chocolate" && <div className="choice-chips"><span className="choice-label">Choose one</span>{["Dairy Milk Silk", "KitKat", "Ferrero Rocher", "Surprise me"].map((item) => <button key={item} className={chocolate === item ? "active" : ""} onClick={() => onChocolate(item)}>{item}</button>)}</div>}{kind === "coffee" && <div className="choice-chips"><span className="choice-label">When?</span>{["Before pickup", "During our ride", "Your call"].map((item) => <button key={item}>{item}</button>)}</div>}{kind === "custom" && <textarea value={custom} onChange={(event) => onCustom(event.target.value)} placeholder="What should he bring or do?" aria-label="Custom request" maxLength={100} />}<label className="route-stop-option"><input type="checkbox" defaultChecked={kind !== "custom"} /><span><strong>Add it as a route stop</strong>Sasi can adjust if it’s out of the way.</span></label><button className="primary-button" onClick={onAdd}>Send request <ArrowRight size={18} /></button></div>;
+  const needsChoice = kind === "chocolate" && !chocolate;
+  return <div className="pitstop-modal"><span className="modal-kicker">{duringRide ? "Add to this ride" : "Ask ahead"}</span><h2>{template.title}?</h2><p>{template.detail}. Keep it simple and they can answer safely.</p><div className="kind-scroll">{requestKinds.map((item) => <button key={item.kind} className={kind === item.kind ? "active" : ""} onClick={() => onKind(item.kind)}><span>{item.emoji}</span>{item.title}</button>)}</div><div className="request-detail-hero"><span>{template.emoji}</span><div><small>Asking {partnerName}</small><strong>{template.title}</strong><p>{template.detail}</p></div></div>{kind === "chocolate" && <div className="choice-chips"><span className="choice-label">Choose one</span>{["Dairy Milk Silk", "KitKat", "Ferrero Rocher", "Surprise me"].map((item) => <button key={item} className={chocolate === item ? "active" : ""} onClick={() => onChocolate(item)}>{chocolate === item && <Check size={14} />}{item}</button>)}</div>}{kind === "coffee" && <div className="choice-chips"><span className="choice-label">When?</span>{["Before pickup", "During our ride", "Your call"].map((item) => <button key={item}>{item}</button>)}</div>}{kind === "custom" && <textarea value={custom} onChange={(event) => onCustom(event.target.value)} placeholder="What should they bring or do?" aria-label="Custom request" maxLength={100} />}<label className="route-stop-option"><input type="checkbox" defaultChecked={kind !== "custom"} /><span><strong>Add it as a stop on the way</strong>{partnerName} can adjust if it’s out of the way.</span></label><button className="primary-button" onClick={onAdd} disabled={needsChoice}>Ask {partnerName} <ArrowRight size={18} /></button></div>;
 }
 
 function CancelModal({ stage, onKeep, onCancel }: { stage: RideStage; onKeep: () => void; onCancel: () => void }) {
@@ -762,5 +841,5 @@ function CancelModal({ stage, onKeep, onCancel }: { stage: RideStage; onKeep: ()
 function DemoModal({ state, onRole, onStage, onEdge, onReset, hint, onHint }: { state: AppState; onRole: (role: Role) => void; onStage: (stage: RideStage) => void; onEdge: (edge: EdgeMode) => void; onReset: () => void; hint: boolean; onHint: () => void }) {
   const stages: RideStage[] = ["idle", "requested", "enroute", "nearby", "arrived", "active", "paused", "complete"];
   const edgeModes: EdgeMode[] = ["normal", "offline", "weak", "stale", "gps-low", "gps-denied", "map-failed", "backgrounded"];
-  return <div className="demo-modal"><span className="modal-kicker">PRIVATE PREVIEW TOOL</span><h2>Demo controls</h2><p>Switch sides and jump between realistic ride and connection states. This panel is hidden behind the Along wordmark in the product preview.</p><div className="demo-label">View as</div><div className="segmented"><button className={state.role === "rider" ? "active" : ""} onClick={() => onRole("rider")}><CircleUserRound size={17} />Monu · rider</button><button className={state.role === "driver" ? "active" : ""} onClick={() => onRole("driver")}><Bike size={17} />Sasi · driver</button></div><div className="demo-label">Ride moment</div><div className="demo-chips">{stages.map((stage) => <button key={stage} className={state.stage === stage ? "active" : ""} onClick={() => onStage(stage)}>{stageLabel[stage]}</button>)}</div><div className="demo-label">Edge state</div><div className="demo-chips edge-chips">{edgeModes.map((mode) => <button key={mode} className={state.edgeMode === mode ? "active" : ""} onClick={() => onEdge(mode)}>{mode.replace("gps-", "GPS ").replace("map-", "map ")}</button>)}</div>{!hint ? <button className="demo-tip" onClick={onHint}><Info size={15} />Why these controls?</button> : <div className="demo-explanation">They make every important edge case visible without waiting for a real GPS drop, network failure, or second phone.</div>}<button className="reset-button" onClick={onReset}><RotateCcw size={17} />Reset demo data</button></div>;
+  return <div className="demo-modal"><span className="modal-kicker">Private preview tool</span><h2>Demo controls</h2><p>Switch sides and jump between realistic journey and connection states. This panel stays hidden behind the Along wordmark.</p><div className="demo-label">View as</div><div className="segmented"><button className={state.role === "rider" ? "active" : ""} onClick={() => onRole("rider")}><CircleUserRound size={17} />Monu · Pillion</button><button className={state.role === "driver" ? "active" : ""} onClick={() => onRole("driver")}><Bike size={17} />Sasi · Rider</button></div><div className="demo-label">Journey moment</div><div className="demo-chips">{stages.map((stage) => <button key={stage} className={state.stage === stage ? "active" : ""} onClick={() => onStage(stage)}>{stageLabel[stage]}</button>)}</div><div className="demo-label">Edge state</div><div className="demo-chips edge-chips">{edgeModes.map((mode) => <button key={mode} className={state.edgeMode === mode ? "active" : ""} onClick={() => onEdge(mode)}>{mode.replace("gps-", "GPS ").replace("map-", "map ")}</button>)}</div>{!hint ? <button className="demo-tip" onClick={onHint}><Info size={15} />Why these controls?</button> : <div className="demo-explanation">They make every important edge case visible without waiting for a real GPS drop, network failure, or second phone.</div>}<button className="reset-button" onClick={onReset}><RotateCcw size={17} />Reset demo data</button></div>;
 }

@@ -85,9 +85,12 @@ const createDriverMarker = (label: string, meta: string, demo: boolean) => {
   const element = document.createElement("div");
   element.className = `live-map-marker driver-live-marker${demo ? " demo-marker" : ""}`;
   element.innerHTML = `
-    <div class="driver-marker-photo"><img src="${SASI_PROFILE_PHOTO}" alt="" /><i></i></div>
+    <div class="driver-marker-photo"><b>S</b><img src="${SASI_PROFILE_PHOTO}" alt="" /><i></i></div>
     <span class="live-marker-label">${label}${meta ? `<small>${meta}</small>` : ""}</span>
   `;
+  element.querySelector("img")?.addEventListener("error", (event) => {
+    (event.currentTarget as HTMLImageElement).hidden = true;
+  });
   return element;
 };
 
@@ -222,7 +225,7 @@ export function LiveMap({
           id: "rider-accuracy-fill",
           type: "fill",
           source: "rider-accuracy",
-          paint: { "fill-color": "#ffd74b", "fill-opacity": 0.12, "fill-outline-color": "rgba(25,25,18,.12)" },
+          paint: { "fill-color": "#e96562", "fill-opacity": 0.12, "fill-outline-color": "rgba(34,34,34,.12)" },
         }, "along-route-casing");
         setMapReady(true);
       });
@@ -459,7 +462,7 @@ export function LiveMap({
       )}
 
       <header className="map-header">
-        <button className="avatar-button" aria-label="Open Sasi profile"><span className="sasi-avatar-crop sasi-header-photo"><img src={SASI_PROFILE_PHOTO} alt="Sasi" width={88} height={88} /></span><i /></button>
+        <button className="avatar-button" aria-label="Open Sasi profile"><span className="sasi-avatar-crop sasi-header-photo"><b aria-hidden="true">S</b><img src={SASI_PROFILE_PHOTO} alt="Sasi" width={88} height={88} onError={(event) => { event.currentTarget.hidden = true; }} /></span><i /></button>
         <button className="wordmark" onClick={onBrand} aria-label="Open preview controls"><span>A</span>along</button>
         <button className="icon-button notification-button" aria-label="Notifications"><Bell size={19} /><i>2</i></button>
       </header>
