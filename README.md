@@ -27,6 +27,18 @@ npm run lint
 npm test
 ```
 
+## PWA and Android
+
+`npm run build` preserves the normal Vinext web build and also creates the static Capacitor bundle in `dist/capacitor`. To refresh the native project:
+
+```bash
+npm run build
+npx cap sync android
+npx cap open android
+```
+
+See [docs/android.md](docs/android.md) for Android Studio, physical-device, PWA installation, permissions, and debug APK instructions.
+
 ## Deploy to Vercel
 
 Connect this repository to Vercel with the repository root (`./`) as the Root Directory. The checked-in `vercel.json` selects Nitro, runs `npm ci` and `npm run build:vercel`, and uses `.vercel/output`.
@@ -42,6 +54,6 @@ Push to the connected production branch (`main`) to trigger deployment. If an ol
 
 `VITE_MAP_STYLE_URL` is optional; without it, the map uses OpenFreeMap. This is a browser-visible build variable, so do not put secrets in it. Set any provider-specific public style URL in Vercel's Environment Variables before building.
 
-The original `npm run dev`, `npm run build`, and `vite.config.ts` remain available for local development and Sites/Cloudflare hosting.
+The original `npm run dev` and `vite.config.ts` remain available for local development and Sites/Cloudflare hosting. The web half of the combined production build is also available directly as `npm run build:web`.
 
 The app is a PWA. Mobile browsers can suspend web location updates when backgrounded or locked, and Along surfaces that limitation instead of simulating movement.

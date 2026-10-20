@@ -40,7 +40,17 @@ test("the production server supports React Server Component requests", async () 
 });
 
 test("Vercel includes the map worker and PWA assets", async () => {
-  for (const name of ["manifest.webmanifest", "favicon.svg", "og.png"]) {
+  for (const name of [
+    "manifest.webmanifest",
+    "favicon.svg",
+    "og.png",
+    "offline.html",
+    "sw.js",
+    "icons/icon-192.png",
+    "icons/icon-512.png",
+    "icons/maskable-512.png",
+    "icons/apple-touch-icon.png",
+  ]) {
     const original = await readFile(new URL(`../public/${name}`, import.meta.url));
     const deployed = await readFile(new URL(`static/${name}`, output));
     assert.deepEqual(deployed, original, `${name} must be copied without changes`);

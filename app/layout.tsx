@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { PwaRuntime } from "./components/pwa-runtime";
 import "./globals.css";
 import "./design-system.css";
 
@@ -37,9 +38,15 @@ export const metadata: Metadata = {
     images: ["/og.png"],
   },
   icons: {
-    icon: "/favicon.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icons/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
     shortcut: "/favicon.svg",
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
+  other: { "mobile-web-app-capable": "yes" },
 };
 
 export const viewport: Viewport = {
@@ -60,6 +67,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <PwaRuntime />
         {children}
       </body>
     </html>

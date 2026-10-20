@@ -34,3 +34,29 @@ test("PWA and map provider configuration are present", async () => {
   assert.match(adapter, /router\.project-osrm\.org/);
   assert.doesNotMatch(map, /DEMO MAP/);
 });
+
+test("Along is installable and the native bundle stays compatible with the web app", async () => {
+  const manifest = JSON.parse(
+    await readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8"),
+  );
+  const pwaRuntime = await readFile(
+    new URL("../app/components/pwa-runtime.tsx", import.meta.url),
+    "utf8",
+  );
+  const capacitor = await readFile(new URL("../capacitor.config.ts", import.meta.url), "utf8");
+  const androidManifest = await readFile(
+    new URL("../android/app/src/main/AndroidManifest.xml", import.meta.url),
+    "utf8",
+  );
+
+  assert.equal(manifest.name, "Along");
+  assert.equal(manifest.display, "standalone");
+  assert.ok(manifest.icons.some((icon) => icon.sizes === "192x192"));
+  assert.ok(manifest.icons.some((icon) => icon.purpose.includes("maskable")));
+  assert.match(pwaRuntime, /isNativePlatform/);
+  assert.match(capacitor, /appId:\s*"com\.along\.app"/);
+  assert.match(capacitor, /webDir:\s*"dist\/capacitor"/);
+  assert.match(androidManifest, /android\.permission\.ACCESS_FINE_LOCATION/);
+  assert.match(androidManifest, /android\.permission\.POST_NOTIFICATIONS/);
+  assert.doesNotMatch(androidManifest, /ACCESS_BACKGROUND_LOCATION/);
+});
