@@ -28,9 +28,10 @@ type LiveMapProps = {
   deviceLocation?: DeviceLocation;
   permission: LocationPermission;
   locationStatus: "idle" | "finding" | "ready" | "error" | "paused";
+  demoMode: boolean;
   focusSignal: number;
   visibleSpeed: number | null;
-  onBrand: () => void;
+  onBrand?: () => void;
   onAllowLocation: () => void;
   onRetryLocation: () => void;
   onManualPickup: () => void;
@@ -111,6 +112,7 @@ export function LiveMap({
   deviceLocation,
   permission,
   locationStatus,
+  demoMode,
   focusSignal,
   visibleSpeed,
   onBrand,
@@ -155,13 +157,13 @@ export function LiveMap({
     let riderIsDemo = false;
     let driverIsDemo = false;
 
-    if (rider && !driver) {
+    if (demoMode && rider && !driver) {
       driver = nearbyDemoCoordinate(rider, state.stage, "driver");
       driverIsDemo = true;
-    } else if (driver && !rider) {
+    } else if (demoMode && driver && !rider) {
       rider = nearbyDemoCoordinate(driver, state.stage, "rider");
       riderIsDemo = true;
-    } else if (!rider && !driver) {
+    } else if (demoMode && !rider && !driver) {
       if (role === "rider") {
         driver = DEMO_SASI_LOCATION;
         driverIsDemo = true;
@@ -171,7 +173,7 @@ export function LiveMap({
       }
     }
     return { rider, driver, riderIsDemo, driverIsDemo };
-  }, [deviceLocation, role, state.driverLocation, state.riderLocation, state.stage]);
+  }, [demoMode, deviceLocation, role, state.driverLocation, state.riderLocation, state.stage]);
 
   const routeWaypoints = useMemo(
     () => buildRouteWaypoints(state, locations.rider, locations.driver),
@@ -463,7 +465,9 @@ export function LiveMap({
 
       <header className="map-header">
         <button className="avatar-button" aria-label="Open Sasi profile"><span className="sasi-avatar-crop sasi-header-photo"><b aria-hidden="true">S</b><img src={SASI_PROFILE_PHOTO} alt="Sasi" width={88} height={88} onError={(event) => { event.currentTarget.hidden = true; }} /></span><i /></button>
-        <button className="wordmark" onClick={onBrand} aria-label="Open preview controls"><span>A</span>along</button>
+        {onBrand
+          ? <button className="wordmark" onClick={onBrand} aria-label="Open demo controls"><span>A</span>along</button>
+          : <span className="wordmark" aria-label="Along"><span>A</span>along</span>}
         <button className="icon-button notification-button" aria-label="Notifications"><Bell size={19} /><i>2</i></button>
       </header>
 

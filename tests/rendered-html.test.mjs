@@ -57,6 +57,21 @@ test("Along is installable and the native bundle stays compatible with the web a
   assert.match(capacitor, /appId:\s*"com\.along\.app"/);
   assert.match(capacitor, /webDir:\s*"dist\/capacitor"/);
   assert.match(androidManifest, /android\.permission\.ACCESS_FINE_LOCATION/);
-  assert.match(androidManifest, /android\.permission\.POST_NOTIFICATIONS/);
+  assert.match(androidManifest, /android\.permission\.ACCESS_COARSE_LOCATION/);
+  assert.match(androidManifest, /android\.permission\.INTERNET/);
+  assert.doesNotMatch(androidManifest, /android\.permission\.POST_NOTIFICATIONS/);
+  assert.doesNotMatch(androidManifest, /android\.permission\.ACCESS_NETWORK_STATE/);
   assert.doesNotMatch(androidManifest, /ACCESS_BACKGROUND_LOCATION/);
+});
+
+test("demo controls and synthetic map locations stay isolated from production", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const demo = await readFile(new URL("../app/demo/page.tsx", import.meta.url), "utf8");
+  const map = await readFile(new URL("../app/components/live-map.tsx", import.meta.url), "utf8");
+
+  assert.match(demo, /<AlongApp demoMode/);
+  assert.match(page, /onBrand=\{demoMode \?/);
+  assert.match(page, /modal === "demo" && demoMode/);
+  assert.match(map, /demoMode && rider && !driver/);
+  assert.match(map, /aria-label="Along"/);
 });

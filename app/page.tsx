@@ -48,7 +48,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LiveMap } from "./components/live-map";
 import type { DeviceLocation, SpeedReading } from "./lib/geolocation";
 import { useLiveLocation } from "./lib/use-live-location";
-import { realtime } from "./lib/realtime";
+import { demoRealtime, realtime } from "./lib/realtime";
 import {
   INITIAL_STATE,
   type AppState,
@@ -122,7 +122,7 @@ const formatAge = (timestamp: number, edgeMode: EdgeMode) => {
   return seconds < 10 ? "just now" : `${seconds}s ago`;
 };
 
-export default function AlongApp() {
+export function AlongApp({ demoMode = false }: { demoMode?: boolean } = {}) {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
   const [hydrated, setHydrated] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
@@ -137,6 +137,7 @@ export default function AlongApp() {
   const [demoHint, setDemoHint] = useState(false);
   const [mapFocusSignal, setMapFocusSignal] = useState(0);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stateStore = demoMode ? demoRealtime : realtime;
 
   const isRideLive = ["requested", "accepted", "enroute", "nearby", "arrived", "active", "paused"].includes(state.stage);
   const locationActive = isRideLive && (state.role === "rider" || state.sharing);
@@ -164,12 +165,12 @@ export default function AlongApp() {
   const { reading, permission } = liveLocation;
 
   useEffect(() => {
-    const saved = realtime.load();
+    const saved = stateStore.load();
     // Hydrate the locally recovered ride only after the browser is available.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (saved) setState({ ...INITIAL_STATE, ...saved, lastUpdated: Date.now() });
     setProfileName(window.localStorage.getItem("along.profile.name") || (saved?.role === "driver" ? "Sasi" : "Monu"));
-    setOnboardingComplete(Boolean(saved) || window.localStorage.getItem(ONBOARDING_KEY) === "complete");
+    setOnboardingComplete(demoMode || Boolean(saved) || window.localStorage.getItem(ONBOARDING_KEY) === "complete");
     setHydrated(true);
     const install = (event: Event) => {
       event.preventDefault();
@@ -177,11 +178,11 @@ export default function AlongApp() {
     };
     window.addEventListener("beforeinstallprompt", install);
     return () => window.removeEventListener("beforeinstallprompt", install);
-  }, []);
+  }, [demoMode, stateStore]);
 
   useEffect(() => {
-    if (hydrated && onboardingComplete) realtime.save(state);
-  }, [hydrated, onboardingComplete, state]);
+    if (hydrated && onboardingComplete) stateStore.save(state);
+  }, [hydrated, onboardingComplete, state, stateStore]);
 
   useEffect(() => {
     const onOnline = () => setState((current) => current.edgeMode === "offline" ? { ...current, edgeMode: "normal", lastUpdated: Date.now() } : current);
@@ -243,7 +244,7 @@ export default function AlongApp() {
   const switchRole = (role: Role) => {
     patchState({ role, activeTab: "ride" });
     setModal("none");
-    notify(`Previewing ${role} view`);
+    notify(`Switched to ${role} view`);
   };
 
   const startRequest = () => {
@@ -332,11 +333,12 @@ export default function AlongApp() {
           permission={permission}
           deviceLocation={liveLocation.location}
           locationStatus={liveLocation.status}
+          demoMode={demoMode}
           mapFocusSignal={mapFocusSignal}
           onAllowLocation={liveLocation.requestLocation}
           onRetryLocation={liveLocation.retry}
           onManualPickup={() => setModal("pickup")}
-          onBrand={() => setModal("demo")}
+          onBrand={demoMode ? () => setModal("demo") : undefined}
           onCall={callPartner}
           onMessage={() => setModal("messages")}
           onRequest={() => { setSelectedKind("chocolate"); setModal("pitstop"); }}
@@ -462,7 +464,7 @@ export default function AlongApp() {
               />
             )}
 
-            {modal === "demo" && (
+            {modal === "demo" && demoMode && (
               <DemoModal
                 state={state}
                 onRole={switchRole}
@@ -478,6 +480,10 @@ export default function AlongApp() {
       )}
     </main>
   );
+}
+
+export default function AlongPage() {
+  return <AlongApp />;
 }
 
 function EdgeBanner({ mode }: { mode: EdgeMode }) {
@@ -526,7 +532,7 @@ function Onboarding({ onComplete }: { onComplete: (name: string, role: Role) => 
 
       {step === 1 && <section className="onboarding-page"><button className="onboarding-back" onClick={() => setStep(0)} aria-label="Back">←</button><div className="onboarding-copy"><span>First, you</span><h1>What should we call you?</h1><p>This is how your person will see you in Along.</p></div><label className="name-field"><span>Your name</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" maxLength={24} /></label><button className="onboarding-cta" disabled={!name.trim()} onClick={() => setStep(2)}>Continue <ArrowRight size={20} /></button></section>}
 
-      {step === 2 && <section className="onboarding-page"><button className="onboarding-back" onClick={() => setStep(1)} aria-label="Back">←</button><div className="onboarding-copy"><span>Your usual role</span><h1>How do you usually travel together?</h1><p>You can still switch sides in the private preview.</p></div><div className="role-cards"><button className={role === "driver" ? "selected" : ""} onClick={() => setRole("driver")}><i><Bike size={28} /></i><span><strong>Rider</strong><b>I’m usually the one riding</b><small>I travel to pick up my person.</small></span>{role === "driver" && <CheckCircle2 size={22} />}</button><button className={role === "rider" ? "selected" : ""} onClick={() => setRole("rider")}><i><MapPin size={28} /></i><span><strong>Pillion</strong><b>I’m usually the one waiting</b><small>I track my person and request pickup.</small></span>{role === "rider" && <CheckCircle2 size={22} />}</button></div><button className="onboarding-cta" disabled={!role} onClick={() => setStep(3)}>Continue <ArrowRight size={20} /></button></section>}
+      {step === 2 && <section className="onboarding-page"><button className="onboarding-back" onClick={() => setStep(1)} aria-label="Back">←</button><div className="onboarding-copy"><span>Your usual role</span><h1>How do you usually travel together?</h1><p>You can change this later from your profile.</p></div><div className="role-cards"><button className={role === "driver" ? "selected" : ""} onClick={() => setRole("driver")}><i><Bike size={28} /></i><span><strong>Rider</strong><b>I’m usually the one riding</b><small>I travel to pick up my person.</small></span>{role === "driver" && <CheckCircle2 size={22} />}</button><button className={role === "rider" ? "selected" : ""} onClick={() => setRole("rider")}><i><MapPin size={28} /></i><span><strong>Pillion</strong><b>I’m usually the one waiting</b><small>I track my person and request pickup.</small></span>{role === "rider" && <CheckCircle2 size={22} />}</button></div><button className="onboarding-cta" disabled={!role} onClick={() => setStep(3)}>Continue <ArrowRight size={20} /></button></section>}
 
       {step === 3 && <section className="onboarding-page pairing-page"><button className="onboarding-back" onClick={() => setStep(2)} aria-label="Back">←</button><div className="onboarding-copy"><span>Just the two of you</span><h1>{role === "driver" ? "Who rides pillion with you?" : "Who usually picks you up?"}</h1><p>Along stays private. Only you and your person can join this space.</p></div><div className="pairing-card"><div className="pairing-avatars"><div className="onboard-avatar monu">{name.trim().charAt(0).toUpperCase()}</div><span><Heart size={18} /></span><div className="onboard-avatar empty"><UserRound size={24} /></div></div><strong>Invite {partner}</strong><small>Share a one-time private connection link.</small></div><button className="onboarding-cta" onClick={() => setStep(4)}>Invite your person <Send size={19} /></button></section>}
 
@@ -545,11 +551,12 @@ type RideProps = {
   permission: "prompt" | "granted" | "denied" | "unavailable";
   deviceLocation?: DeviceLocation;
   locationStatus: "idle" | "finding" | "ready" | "error" | "paused";
+  demoMode: boolean;
   mapFocusSignal: number;
   onAllowLocation: () => void;
   onRetryLocation: () => void;
   onManualPickup: () => void;
-  onBrand: () => void;
+  onBrand?: () => void;
   onCall: () => void;
   onMessage: () => void;
   onRequest: () => void;
@@ -577,6 +584,7 @@ function RideScreen(props: RideProps) {
         deviceLocation={props.deviceLocation}
         permission={props.permission}
         locationStatus={props.locationStatus}
+        demoMode={props.demoMode}
         focusSignal={props.mapFocusSignal}
         visibleSpeed={props.visibleSpeed}
         onBrand={props.onBrand}

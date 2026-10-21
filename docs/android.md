@@ -15,7 +15,7 @@ npx cap open android
 
 ## Android permissions
 
-The Android manifest includes foreground coarse/fine location, network access, network state, and Android 13+ notification permission. Along does not declare `ACCESS_BACKGROUND_LOCATION`. Notification permission is prepared in the manifest but should only be requested at runtime when a native notification feature is introduced.
+The Android manifest includes Internet access and foreground coarse/fine location. Along does not declare `ACCESS_BACKGROUND_LOCATION`. Notification permission is intentionally absent until a notification plugin and runtime request flow are added.
 
 ## Physical Android phone
 

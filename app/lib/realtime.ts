@@ -6,13 +6,13 @@ export interface RealtimeAdapter {
   subscribe(listener: (state: AppState) => void): () => void;
 }
 
-const KEY = "along.private-ride.v1";
-
 export class LocalDemoRealtime implements RealtimeAdapter {
+  constructor(private readonly key = "along.private-ride.v1") {}
+
   load() {
     if (typeof window === "undefined") return null;
     try {
-      const value = window.localStorage.getItem(KEY);
+      const value = window.localStorage.getItem(this.key);
       return value ? (JSON.parse(value) as AppState) : null;
     } catch {
       return null;
@@ -21,7 +21,7 @@ export class LocalDemoRealtime implements RealtimeAdapter {
 
   save(state: AppState) {
     try {
-      window.localStorage.setItem(KEY, JSON.stringify(state));
+      window.localStorage.setItem(this.key, JSON.stringify(state));
       window.dispatchEvent(new CustomEvent("along:state", { detail: state }));
     } catch {
       // Storage can be unavailable in privacy mode; the in-memory app keeps working.
@@ -31,7 +31,7 @@ export class LocalDemoRealtime implements RealtimeAdapter {
   subscribe(listener: (state: AppState) => void) {
     const local = (event: Event) => listener((event as CustomEvent<AppState>).detail);
     const storage = (event: StorageEvent) => {
-      if (event.key === KEY && event.newValue) listener(JSON.parse(event.newValue) as AppState);
+      if (event.key === this.key && event.newValue) listener(JSON.parse(event.newValue) as AppState);
     };
     window.addEventListener("along:state", local);
     window.addEventListener("storage", storage);
@@ -44,3 +44,4 @@ export class LocalDemoRealtime implements RealtimeAdapter {
 
 // Swap this instance for a Supabase/Firebase adapter without changing the UI.
 export const realtime = new LocalDemoRealtime();
+export const demoRealtime = new LocalDemoRealtime("along.private-ride.demo.v1");
