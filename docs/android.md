@@ -35,6 +35,8 @@ Run:
 npm run android:apk
 ```
 
+The script uses `JAVA_HOME` when set, otherwise it detects the JDK bundled with Android Studio on macOS, Windows, or Linux.
+
 The APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`.
 
 ## PWA on an Android phone

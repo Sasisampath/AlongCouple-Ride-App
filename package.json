@@ -19,7 +19,7 @@
     "cap:sync": "npx cap sync android",
     "cap:open": "npx cap open android",
     "android:run": "npm run build && npm run cap:sync && npx cap run android",
-    "android:apk": "npm run build && npm run cap:sync && cd android && ./gradlew assembleDebug",
+    "android:apk": "npm run build && npm run cap:sync && node scripts/gradle-debug-apk.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
