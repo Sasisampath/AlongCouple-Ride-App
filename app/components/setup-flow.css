@@ -1,0 +1,38 @@
+.setup-shell,.setup-dialog { color:#111827;background:#fbf8f4;font-family:"Inter Variable",sans-serif;color-scheme:light; }
+.setup-shell { position:relative;isolation:isolate;width:min(100%,430px);min-height:100dvh;margin:auto;padding:calc(12px + env(safe-area-inset-top)) 24px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column; }
+.setup-shell::before { content:"";position:absolute;inset:24% 0 16%;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at center,rgba(255,100,100,.07),transparent 70%),linear-gradient(rgba(17,24,39,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(17,24,39,.035) 1px,transparent 1px);background-size:auto,48px 48px,48px 48px;mask-image:linear-gradient(transparent,#000 25%,#000 75%,transparent); }
+.setup-shell header { height:58px;display:flex;align-items:center;justify-content:space-between; }
+.setup-shell header img { width:95px;height:58px;object-fit:contain; }
+.setup-shell button,.setup-dialog button { font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent; }
+.setup-shell header button,.setup-secondary { border:0;background:transparent;min-height:44px;color:#7d818a;font-weight:600; }
+.setup-shell h1 { font:800 clamp(38px,11.5vw,48px)/1.02 "Bricolage Grotesque Variable",sans-serif;letter-spacing:-.04em;margin:24px 0 0; }
+.setup-shell em { font-style:normal;color:#ff6464; }
+.setup-hero { flex:1;min-height:180px;display:flex;align-items:center;justify-content:center; }
+.setup-hero img { width:100%;height:min(35dvh,310px);object-fit:contain; }
+.setup-roles { display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0 24px; }
+.setup-roles button { position:relative;border:1.5px solid #e5e4e2;border-radius:24px;background:#fbf8f4;padding:12px;display:flex;flex-direction:column;align-items:center;gap:6px;color:#111827; }
+.setup-roles img { width:82px;height:82px;object-fit:contain; }
+.setup-roles button[aria-pressed=true] { border-color:#ff6464;background:#fff0ec; }
+.setup-roles i { position:absolute;right:12px;top:12px;width:18px;height:18px;border:1px solid #dedcd9;border-radius:50%;display:grid;place-items:center; }
+.setup-roles [aria-pressed=true] i,.setup-avatars i { background:#ff6464;color:white;border-color:#ff6464; }
+.setup-shell footer { margin-top:auto; }
+.setup-primary { display:flex;justify-content:center;align-items:center;position:relative;gap:16px;min-height:60px;width:100%;border:0;border-radius:999px;background:#ff6464;color:white;text-decoration:none;font:800 18px "Bricolage Grotesque Variable",sans-serif!important; }
+.setup-primary svg { position:absolute;right:22px; }
+.setup-avatars { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 22px;margin:24px auto;max-width:320px;width:100%; }
+.setup-avatars button { position:relative;height:clamp(86px,12dvh,110px);border:2px solid transparent;border-radius:24px;background:transparent;padding:4px; }
+.setup-avatars button[aria-pressed=true] { border-color:#ff6464; }
+.setup-avatars img { width:100%;height:100%;object-fit:contain; }
+.setup-avatars i { position:absolute;right:5px;bottom:5px;border-radius:50%;width:22px;height:22px;display:grid;place-items:center; }
+.setup-shell button:focus-visible,.setup-dialog button:focus-visible,.setup-dialog a:focus-visible { outline:3px solid #111827;outline-offset:3px; }
+.setup-dialog { position:fixed;inset:0;margin:auto;width:min(390px,calc(100% - 24px));max-height:calc(100dvh - 32px);overflow:auto;border:0;border-radius:30px;padding:28px; }
+.setup-dialog::backdrop { background:rgba(17,24,39,.3); }
+.setup-close { position:absolute;right:12px;top:12px;border:0;background:transparent;width:44px;height:44px;display:grid;place-items:center; }
+.setup-account-art { width:100%;height:170px;object-fit:contain; }
+.setup-dialog h2 { font:800 36px/1.05 "Bricolage Grotesque Variable",sans-serif;letter-spacing:-.035em;margin:20px 0; }
+.setup-dialog p { font-size:14px;line-height:1.6;color:#7d818a;margin:16px 0 24px; }
+.setup-secondary { display:block;width:100%;margin-top:10px; }
+.setup-dialog label { display:block;font-size:12px;color:#7d818a;margin:14px 0; }
+.setup-dialog input { display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #e5e4e2;border-radius:12px;background:transparent;color:#111827; }
+.setup-dialog button:disabled { opacity:.45;cursor:not-allowed; }
+.profile-avatar .setup-profile-avatar { width:100%;height:100%;object-fit:contain;border-radius:0; }
+@media(max-height:740px) { .setup-shell h1{margin-top:12px;font-size:38px}.setup-avatars{gap:8px;margin:16px auto}.setup-avatars button{height:84px}.setup-roles img{height:62px}.setup-hero img{height:26dvh} }

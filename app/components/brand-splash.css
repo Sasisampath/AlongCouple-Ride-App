@@ -1,0 +1,75 @@
+.intro-entry {
+  position: relative;
+  isolation: isolate;
+  width: min(100%, 430px);
+  margin: 0 auto;
+  background: #07111f;
+}
+.intro-entry[data-splash="true"] { min-height: 100dvh; }
+.brand-splash {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #07111f;
+  color: #f7f3ec;
+  animation: brand-splash-exit 200ms ease calc(2200ms - var(--splash-at, 0ms)) both;
+}
+.brand-splash-atmosphere { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: #a7b1c2; stroke-width: 1; opacity: .03; pointer-events: none; }
+.brand-splash-lockup {
+  position: relative;
+  width: clamp(178px, 48.72vw, 196px);
+  transform: translateY(-20px);
+  animation: brand-splash-settle 200ms ease calc(2200ms - var(--splash-at, 0ms)) both;
+}
+.brand-splash-logo { display: block; width: 100%; height: auto; overflow: visible; }
+.brand-splash-stroke {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: brand-pen var(--stroke-duration) cubic-bezier(.35,0,.25,1) calc(var(--stroke-start) - var(--splash-at, 0ms)) both;
+}
+.brand-splash-tracing { animation: brand-trace-fill 230ms ease calc(1350ms - var(--splash-at, 0ms)) both; }
+.brand-splash-solid { opacity: 0; animation: brand-solid-fill 230ms ease calc(1350ms - var(--splash-at, 0ms)) both; }
+.brand-splash-dot {
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: 1272px 626px;
+  animation: brand-dot-pop 200ms cubic-bezier(.2,.65,.35,1) calc(1550ms - var(--splash-at, 0ms)) both;
+}
+.brand-splash-tagline {
+  margin: -22px 0 0;
+  text-align: center;
+  font: 400 12px/18px "Inter Variable", sans-serif;
+  letter-spacing: .045em;
+  color: #a7b1c2;
+  opacity: 0;
+  animation: brand-line-arrive 180ms ease calc(1780ms - var(--splash-at, 0ms)) both;
+}
+.brand-splash[data-ready="false"],
+.brand-splash[data-ready="false"] *,
+.brand-splash[data-held="true"],
+.brand-splash[data-held="true"] * { animation-play-state: paused !important; }
+
+@keyframes brand-pen { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes brand-trace-fill { from { opacity: 1; } to { opacity: 0; } }
+@keyframes brand-solid-fill { from { opacity: 0; } to { opacity: 1; } }
+@keyframes brand-dot-pop { 0% { opacity: 0; transform: scale(.4); } 70% { opacity: 1; transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes brand-line-arrive { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes brand-splash-exit { from { opacity: 1; } to { opacity: 0; } }
+@keyframes brand-splash-settle { from { transform: translateY(-20px) scale(1); } to { transform: translateY(-20px) scale(.96); } }
+
+/* Explicit data mirrors the system preference and also supports dev-only QA.
+   No pen trace, overshoot, scale, or translation in the reduced-motion path. */
+.brand-splash[data-reduced-motion="true"] { animation: brand-splash-exit 150ms ease calc(900ms - var(--splash-at, 0ms)) both !important; }
+.brand-splash[data-reduced-motion="true"] .brand-splash-tracing { display: none; }
+.brand-splash[data-reduced-motion="true"] .brand-splash-lockup { animation: none !important; }
+.brand-splash[data-reduced-motion="true"] .brand-splash-solid { animation: brand-solid-fill 150ms ease calc(100ms - var(--splash-at, 0ms)) both !important; }
+.brand-splash[data-reduced-motion="true"] .brand-splash-dot { animation: brand-solid-fill 150ms ease calc(250ms - var(--splash-at, 0ms)) both !important; }
+.brand-splash[data-reduced-motion="true"] .brand-splash-tagline { animation: brand-solid-fill 150ms ease calc(450ms - var(--splash-at, 0ms)) both !important; }
+.brand-splash[data-reduced-motion][data-held="true"],
+.brand-splash[data-reduced-motion][data-held="true"] *,
+.brand-splash[data-reduced-motion][data-ready="false"],
+.brand-splash[data-reduced-motion][data-ready="false"] * { animation-play-state: paused !important; }

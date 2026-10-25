@@ -46,6 +46,8 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LiveMap } from "./components/live-map";
+import { IntroExperience } from "./components/intro-experience";
+import { SetupFlow, AccountGate, readSetup, type AccountSession } from "./components/setup-flow";
 import type { DeviceLocation, SpeedReading } from "./lib/geolocation";
 import { useLiveLocation } from "./lib/use-live-location";
 import { demoRealtime, realtime } from "./lib/realtime";
@@ -122,11 +124,14 @@ const formatAge = (timestamp: number, edgeMode: EdgeMode) => {
   return seconds < 10 ? "just now" : `${seconds}s ago`;
 };
 
-export function AlongApp({ demoMode = false }: { demoMode?: boolean } = {}) {
+export function AlongApp({ demoMode = false, skipWelcome = false, onBackToIntro }: { demoMode?: boolean; skipWelcome?: boolean; onBackToIntro?: () => void } = {}) {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
   const [hydrated, setHydrated] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
-  const [profileName, setProfileName] = useState("Monu");
+  const [profileName, setProfileName] = useState("You");
+  const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
+  const [accountGate, setAccountGate] = useState<"signin" | "pair" | null>(null);
+  const [accountSession, setAccountSession] = useState<AccountSession>({ authenticated: false, signInUrl: null });
   const [modal, setModal] = useState<Modal>("none");
   const [toast, setToast] = useState("");
   const [selectedKind, setSelectedKind] = useState<PitStop["kind"]>("chocolate");
@@ -140,7 +145,7 @@ export function AlongApp({ demoMode = false }: { demoMode?: boolean } = {}) {
   const stateStore = demoMode ? demoRealtime : realtime;
 
   const isRideLive = ["requested", "accepted", "enroute", "nearby", "arrived", "active", "paused"].includes(state.stage);
-  const locationActive = isRideLive && (state.role === "rider" || state.sharing);
+  const locationActive = (demoMode || accountSession.authenticated) && isRideLive && (state.role === "rider" || state.sharing);
   const saveDeviceLocation = useCallback((location: DeviceLocation) => {
     setState((current) => {
       const isRider = current.role === "rider";
@@ -169,8 +174,15 @@ export function AlongApp({ demoMode = false }: { demoMode?: boolean } = {}) {
     // Hydrate the locally recovered ride only after the browser is available.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (saved) setState({ ...INITIAL_STATE, ...saved, lastUpdated: Date.now() });
-    setProfileName(window.localStorage.getItem("along.profile.name") || (saved?.role === "driver" ? "Sasi" : "Monu"));
-    setOnboardingComplete(demoMode || Boolean(saved) || window.localStorage.getItem(ONBOARDING_KEY) === "complete");
+    const setup = readSetup();
+    setProfileAvatar(setup.avatar);
+    let previousSetupComplete = false;
+    try {
+      setProfileName(window.localStorage.getItem("along.profile.name") || "You");
+      previousSetupComplete = window.localStorage.getItem(ONBOARDING_KEY) === "complete";
+    } catch { /* Setup remains usable when browser storage is unavailable. */ }
+    if (!saved && setup.role) setState(current => ({ ...current, role: setup.role! }));
+    setOnboardingComplete(demoMode || setup.complete || Boolean(saved) || previousSetupComplete);
     setHydrated(true);
     const install = (event: Event) => {
       event.preventDefault();
@@ -179,6 +191,20 @@ export function AlongApp({ demoMode = false }: { demoMode?: boolean } = {}) {
     window.addEventListener("beforeinstallprompt", install);
     return () => window.removeEventListener("beforeinstallprompt", install);
   }, [demoMode, stateStore]);
+
+  useEffect(() => {
+    // Only the existing hosted environment supplies authenticated headers.
+    // Local and Capacitor builds remain guests rather than simulating sign-in.
+    if (demoMode || !window.location.hostname.endsWith(".chatgpt.site")) return;
+    const abort = new AbortController();
+    fetch("/api/account-session", { credentials: "same-origin", signal: abort.signal })
+      .then(response => response.ok ? response.json() : Promise.reject())
+      .then(session => {
+        setAccountSession({ authenticated: session.authenticated === true, signInUrl: typeof session.signInUrl === "string" && session.signInUrl.startsWith("/signin-with-chatgpt?") ? session.signInUrl : null });
+        if (new URLSearchParams(window.location.search).get("connect") === "partner") setAccountGate(session.authenticated ? "pair" : "signin");
+      }).catch(() => {});
+    return () => abort.abort();
+  }, [demoMode]);
 
   useEffect(() => {
     if (hydrated && onboardingComplete) stateStore.save(state);
@@ -195,8 +221,16 @@ export function AlongApp({ demoMode = false }: { demoMode?: boolean } = {}) {
     };
   }, []);
 
-  const patchState = (patch: Partial<AppState>) =>
+  const requireAccount = () => {
+    if (demoMode) return true;
+    setModal("none");
+    setAccountGate(accountSession.authenticated ? "pair" : "signin");
+    return false;
+  };
+  const patchState = (patch: Partial<AppState>) => {
+    if ((patch.sharing || patch.stage || patch.driverOnline) && !requireAccount()) return;
     setState((current) => ({ ...current, ...patch, lastUpdated: Date.now() }));
+  };
 
   const notify = (message: string) => {
     setToast(message);
@@ -205,6 +239,7 @@ export function AlongApp({ demoMode = false }: { demoMode?: boolean } = {}) {
   };
 
   const addRequest = () => {
+    if (!requireAccount()) return;
     const template = requestKinds.find((item) => item.kind === selectedKind)!;
     const detail =
       selectedKind === "chocolate"
@@ -219,6 +254,7 @@ export function AlongApp({ demoMode = false }: { demoMode?: boolean } = {}) {
   };
 
   const setStage = (stage: RideStage, message?: string) => {
+    if (!requireAccount()) return;
     patchState({ stage, sharing: stage !== "idle" && stage !== "complete" && stage !== "cancelled" });
     if (message) notify(message);
   };
@@ -237,6 +273,7 @@ export function AlongApp({ demoMode = false }: { demoMode?: boolean } = {}) {
   };
 
   const sendMessage = (message: string) => {
+    if (!requireAccount()) return;
     setModal("none");
     notify(`“${message}” sent`);
   };
@@ -248,6 +285,7 @@ export function AlongApp({ demoMode = false }: { demoMode?: boolean } = {}) {
   };
 
   const startRequest = () => {
+    if (!requireAccount()) return;
     if (!state.driverOnline) {
       notify("Sasi is offline — we’ll let you know when he’s back");
       return;
@@ -261,6 +299,7 @@ export function AlongApp({ demoMode = false }: { demoMode?: boolean } = {}) {
   };
 
   const submitRide = () => {
+    if (!requireAccount()) return;
     if (state.stage !== "idle" && !["declined", "timedout", "cancelled", "complete"].includes(state.stage)) {
       notify("You already have a ride in progress");
       return;
@@ -305,12 +344,11 @@ export function AlongApp({ demoMode = false }: { demoMode?: boolean } = {}) {
 
   if (!onboardingComplete) {
     return (
-      <Onboarding
-        onComplete={(name, role) => {
-          window.localStorage.setItem(ONBOARDING_KEY, "complete");
-          window.localStorage.setItem("along.profile.name", name);
-          setProfileName(name);
-          patchState({ role });
+      <SetupFlow
+        onComplete={(choice) => {
+          try { window.localStorage.setItem(ONBOARDING_KEY, "complete"); } catch { /* In-memory entry works. */ }
+          setProfileAvatar(choice.avatar);
+          patchState({ role: choice.role || "rider" });
           setOnboardingComplete(true);
         }}
       />
@@ -352,14 +390,14 @@ export function AlongApp({ demoMode = false }: { demoMode?: boolean } = {}) {
           }}
           onStage={setStage}
           onCancel={() => setModal("cancel")}
-          onReady={() => { patchState({ riderReady: true }); notify("Sasi knows you’re coming downstairs"); }}
+          onReady={() => { if (!requireAccount()) return; patchState({ riderReady: true }); notify("Sasi knows you’re coming downstairs"); }}
           onSharing={() => patchState({ sharing: !state.sharing })}
           onDriverOnline={() => patchState({ driverOnline: !state.driverOnline, sharing: false })}
-          onPitStopStatus={(id, status) => setState((current) => ({
+          onPitStopStatus={(id, status) => { if (!requireAccount()) return; setState((current) => ({
             ...current,
             pitStops: current.pitStops.map((item) => item.id === id ? { ...item, status } : item),
             lastUpdated: Date.now(),
-          }))}
+          })); }}
         />
       )}
 
@@ -377,6 +415,8 @@ export function AlongApp({ demoMode = false }: { demoMode?: boolean } = {}) {
         <ProfileScreen
           state={state}
           profileName={profileName}
+          profileAvatar={profileAvatar}
+          onConnect={() => setAccountGate(accountSession.authenticated ? "pair" : "signin")}
           permission={permission}
           installPrompt={installPrompt}
           onInstall={async () => {
@@ -387,6 +427,7 @@ export function AlongApp({ demoMode = false }: { demoMode?: boolean } = {}) {
         />
       )}
 
+      {accountGate && <AccountGate session={accountSession} pairing={accountGate === "pair"} onClose={() => setAccountGate(null)} />}
       <nav className="bottom-nav" aria-label="Main navigation">
         {navItems.map(({ id, label, Icon }) => (
           <button
@@ -483,7 +524,7 @@ export function AlongApp({ demoMode = false }: { demoMode?: boolean } = {}) {
 }
 
 export default function AlongPage() {
-  return <AlongApp />;
+  return <IntroExperience>{(backToIntro) => <AlongApp skipWelcome onBackToIntro={backToIntro} />}</IntroExperience>;
 }
 
 function EdgeBanner({ mode }: { mode: EdgeMode }) {
@@ -519,8 +560,8 @@ function PlaceCard({ className, icon, label, detail }: { className: string; icon
   return <article className={`place-card ${className}`}><span>{icon}</span><div><strong>{label}</strong><p>{detail}</p></div></article>;
 }
 
-function Onboarding({ onComplete }: { onComplete: (name: string, role: Role) => void }) {
-  const [step, setStep] = useState(0);
+function Onboarding({ onComplete, initialStep = 0, onBackToIntro }: { onComplete: (name: string, role: Role) => void; initialStep?: number; onBackToIntro?: () => void }) {
+  const [step, setStep] = useState(initialStep);
   const [name, setName] = useState("");
   const [role, setRole] = useState<Role | null>(null);
   const partner = role === "driver" ? "your pillion" : "the person who picks you up";
@@ -530,7 +571,7 @@ function Onboarding({ onComplete }: { onComplete: (name: string, role: Role) => 
       <div className="onboarding-progress" aria-label={`Step ${step + 1} of 5`}><i style={{ width: `${((step + 1) / 5) * 100}%` }} /></div>
       {step === 0 && <section className="onboarding-page welcome-page"><div className="onboarding-brand"><span>A</span>along</div><div className="connection-visual"><div className="onboard-avatar monu">M</div><svg viewBox="0 0 180 74" aria-hidden="true"><path d="M26 45 C62 4 112 72 154 27" /><circle cx="89" cy="37" r="4" /></svg><SasiAvatar className="onboard-avatar" /></div><div className="onboarding-copy"><span>Made for two</span><h1>Know when your person is actually on the way.</h1><p>Live journey awareness for two people.</p></div><button className="onboarding-cta" onClick={() => setStep(1)}>Get started <ArrowRight size={20} /></button></section>}
 
-      {step === 1 && <section className="onboarding-page"><button className="onboarding-back" onClick={() => setStep(0)} aria-label="Back">←</button><div className="onboarding-copy"><span>First, you</span><h1>What should we call you?</h1><p>This is how your person will see you in Along.</p></div><label className="name-field"><span>Your name</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" maxLength={24} /></label><button className="onboarding-cta" disabled={!name.trim()} onClick={() => setStep(2)}>Continue <ArrowRight size={20} /></button></section>}
+      {step === 1 && <section className="onboarding-page"><button className="onboarding-back" onClick={() => onBackToIntro ? onBackToIntro() : setStep(0)} aria-label="Back">←</button><div className="onboarding-copy"><span>First, you</span><h1>What should we call you?</h1><p>This is how your person will see you in Along.</p></div><label className="name-field"><span>Your name</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" maxLength={24} /></label><button className="onboarding-cta" disabled={!name.trim()} onClick={() => setStep(2)}>Continue <ArrowRight size={20} /></button></section>}
 
       {step === 2 && <section className="onboarding-page"><button className="onboarding-back" onClick={() => setStep(1)} aria-label="Back">←</button><div className="onboarding-copy"><span>Your usual role</span><h1>How do you usually travel together?</h1><p>You can change this later from your profile.</p></div><div className="role-cards"><button className={role === "driver" ? "selected" : ""} onClick={() => setRole("driver")}><i><Bike size={28} /></i><span><strong>Rider</strong><b>I’m usually the one riding</b><small>I travel to pick up my person.</small></span>{role === "driver" && <CheckCircle2 size={22} />}</button><button className={role === "rider" ? "selected" : ""} onClick={() => setRole("rider")}><i><MapPin size={28} /></i><span><strong>Pillion</strong><b>I’m usually the one waiting</b><small>I track my person and request pickup.</small></span>{role === "rider" && <CheckCircle2 size={22} />}</button></div><button className="onboarding-cta" disabled={!role} onClick={() => setStep(3)}>Continue <ArrowRight size={20} /></button></section>}
 
@@ -788,17 +829,17 @@ function UsScreen() {
   );
 }
 
-type ProfileProps = { state: AppState; profileName: string; permission: string; installPrompt: InstallPrompt | null; onInstall: () => void; onPatch: (patch: Partial<AppState>) => void };
-function ProfileScreen({ state, profileName, permission, installPrompt, onInstall, onPatch }: ProfileProps) {
+type ProfileProps = { state: AppState; profileName: string; profileAvatar: string | null; onConnect: () => void; permission: string; installPrompt: InstallPrompt | null; onInstall: () => void; onPatch: (patch: Partial<AppState>) => void };
+function ProfileScreen({ state, profileName, profileAvatar, onConnect, permission, installPrompt, onInstall, onPatch }: ProfileProps) {
   const [notifications, setNotifications] = useState(true);
   const isPillion = state.role === "rider";
   return (
     <section className="screen content-screen profile-screen">
       <ContentHeader kicker="PROFILE" title={profileName} subtitle={`${isPillion ? "Pillion" : "Rider"} · private by design`} />
-      <div className="profile-identity"><div className={`profile-avatar ${isPillion ? "monu" : "sasi"}`}>{isPillion ? "M" : <SasiAvatar />}</div><div><strong>{profileName}</strong><span>{isPillion ? "Usually waiting" : "Usually riding"}</span></div></div>
+      <div className="profile-identity"><div className={`profile-avatar ${isPillion ? "monu" : "sasi"}`}>{profileAvatar ? <img className="setup-profile-avatar" src={profileAvatar} alt="Your avatar" /> : <UserRound />}</div><div><strong>{profileName}</strong><span>{isPillion ? "Usually waiting" : "Usually riding"}</span></div></div>
       <div className="section-heading"><div><span>Connected</span><h2>Your person</h2></div></div>
       <div className="partner-card"><div className="partner-avatars"><span className="monu-avatar">M</span><i><Heart size={10} fill="currentColor" /></i><SasiAvatar className="partner-photo" /></div><div><small>YOUR PERSON</small><strong>{isPillion ? "Sasi" : "Monu"}</strong><p>{isPillion ? "Rider · White Ather 450X" : "Pillion · Connected"}</p></div><button aria-label={`Call ${isPillion ? "Sasi" : "Monu"}`}><Phone size={18} /></button></div>
-      <div className="partner-actions"><button>View profile</button><button>Manage connection</button></div>
+      <div className="partner-actions"><button>View profile</button><button onClick={onConnect}>Connect your partner</button></div>
       <div className="settings-group"><h3>Places & rides</h3><SettingsRow Icon={MapPin} title="Saved places" detail="Home, Work, 3 more" /><SettingsRow Icon={Route} title="Ride history" detail="24 rides together" /><SettingsRow Icon={Users} title="Emergency contacts" detail="2 people" /></div>
       <div className="settings-group"><h3>Privacy & safety</h3><SettingsRow Icon={Radio} title="Live location" detail={state.sharing ? "Shared during active rides" : "Sharing is paused"} control={<Toggle on={state.sharing} onClick={() => onPatch({ sharing: !state.sharing })} />} /><SettingsRow Icon={Crosshair} title="Location permission" detail={permission === "granted" ? "Precise location allowed" : permission === "denied" ? "Permission denied" : "Ask when needed"} /><SettingsRow Icon={ShieldCheck} title="Privacy promise" detail="Never tracked silently or 24/7" /></div>
       <div className="settings-group"><h3>App</h3><SettingsRow Icon={BellRing} title="Notifications" detail="Ride and request updates" control={<Toggle on={notifications} onClick={() => setNotifications(!notifications)} />} /><SettingsRow Icon={Moon} title="Appearance" detail={state.appearance === "light" ? "Soft light" : "Night ride"} control={<Toggle on={state.appearance === "dark"} onClick={() => onPatch({ appearance: state.appearance === "light" ? "dark" : "light" })} />} /><button className="setting-row" onClick={onInstall}><span className="setting-icon"><Navigation size={18} /></span><span><strong>{installPrompt ? "Install Along" : "Add to Home Screen"}</strong><small>Faster launch, full-screen feel</small></span><ChevronRight size={17} /></button><SettingsRow Icon={Info} title="About Along" detail="Made for two · v1.0" /></div>
