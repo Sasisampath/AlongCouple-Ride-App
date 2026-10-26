@@ -45,7 +45,7 @@ function ApprovedWordmark() {
   );
 }
 
-function SignInPlaceholder({ onClose, onStart }: { onClose: () => void; onStart: () => void }) {
+export function SignInPlaceholder({ onClose, onStart }: { onClose: () => void; onStart: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const node = dialog.current;

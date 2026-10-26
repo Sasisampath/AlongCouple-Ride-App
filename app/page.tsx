@@ -46,6 +46,8 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LiveMap } from "./components/live-map";
+import { HomeExperience, HomeNavigation } from "./components/home-experience";
+import { RequestsExperience } from "./components/requests-experience";
 import { IntroExperience } from "./components/intro-experience";
 import { SetupFlow, AccountGate, readSetup, type AccountSession } from "./components/setup-flow";
 import type { DeviceLocation, SpeedReading } from "./lib/geolocation";
@@ -145,7 +147,9 @@ export function AlongApp({ demoMode = false, skipWelcome = false, onBackToIntro 
   const stateStore = demoMode ? demoRealtime : realtime;
 
   const isRideLive = ["requested", "accepted", "enroute", "nearby", "arrived", "active", "paused"].includes(state.stage);
-  const locationActive = (demoMode || accountSession.authenticated) && isRideLive && (state.role === "rider" || state.sharing);
+  // Home currently has no authenticated journey adapter: never resume a seeded
+  // ride's high-frequency watch while exploring the map.
+  const locationActive = state.activeTab !== "ride" && (demoMode || accountSession.authenticated) && isRideLive && (state.role === "rider" || state.sharing);
   const saveDeviceLocation = useCallback((location: DeviceLocation) => {
     setState((current) => {
       const isRider = current.role === "rider";
@@ -358,54 +362,26 @@ export function AlongApp({ demoMode = false, skipWelcome = false, onBackToIntro 
   return (
     <main className={`app-shell ${state.appearance === "dark" ? "theme-dark" : ""}`}>
       {toast && <div className="toast"><CheckCircle2 size={17} />{toast}</div>}
-      <EdgeBanner mode={state.edgeMode} />
+      {state.activeTab !== "ride" && <EdgeBanner mode={state.edgeMode} />}
 
       {state.activeTab === "ride" && (
-        <RideScreen
-          state={state}
-          role={state.role}
-          driverTitle={driverTitle}
-          age={age}
-          visibleSpeed={visibleSpeed}
-          reading={reading}
+        <HomeExperience
+          authenticated={accountSession.authenticated}
+          selectedAvatar={profileAvatar}
           permission={permission}
-          deviceLocation={liveLocation.location}
+          location={liveLocation.location}
           locationStatus={liveLocation.status}
           demoMode={demoMode}
-          mapFocusSignal={mapFocusSignal}
           onAllowLocation={liveLocation.requestLocation}
-          onRetryLocation={liveLocation.retry}
-          onManualPickup={() => setModal("pickup")}
-          onBrand={demoMode ? () => setModal("demo") : undefined}
-          onCall={callPartner}
-          onMessage={() => setModal("messages")}
-          onRequest={() => { setSelectedKind("chocolate"); setModal("pitstop"); }}
-          onCoffee={() => { setSelectedKind("coffee"); setModal("pitstop"); }}
-          onAddStop={() => { setSelectedKind("stop"); setModal("pitstop"); }}
-          onDestination={() => { setPendingDestination(state.destination); setModal("destination"); }}
-          onComeGetMe={startRequest}
-          onFindPartner={() => {
-            setMapFocusSignal((value) => value + 1);
-            notify("Showing both of you on the map");
-          }}
-          onStage={setStage}
-          onCancel={() => setModal("cancel")}
-          onReady={() => { if (!requireAccount()) return; patchState({ riderReady: true }); notify("Sasi knows you’re coming downstairs"); }}
-          onSharing={() => patchState({ sharing: !state.sharing })}
-          onDriverOnline={() => patchState({ driverOnline: !state.driverOnline, sharing: false })}
-          onPitStopStatus={(id, status) => { if (!requireAccount()) return; setState((current) => ({
-            ...current,
-            pitStops: current.pitStops.map((item) => item.id === id ? { ...item, status } : item),
-            lastUpdated: Date.now(),
-          })); }}
+          onInvite={() => setAccountGate(accountSession.authenticated ? "pair" : "signin")}
         />
       )}
 
       {state.activeTab === "requests" && (
-        <RequestsScreen
-          requests={state.pitStops}
-          onAdd={(kind) => { setSelectedKind(kind); setModal("pitstop"); }}
-          onRemove={(id) => setState((current) => ({ ...current, pitStops: current.pitStops.filter((item) => item.id !== id) }))}
+        <RequestsExperience
+          authenticated={accountSession.authenticated}
+          demoMode={demoMode}
+          onConnect={() => setAccountGate(accountSession.authenticated ? "pair" : "signin")}
         />
       )}
 
@@ -428,19 +404,7 @@ export function AlongApp({ demoMode = false, skipWelcome = false, onBackToIntro 
       )}
 
       {accountGate && <AccountGate session={accountSession} pairing={accountGate === "pair"} onClose={() => setAccountGate(null)} />}
-      <nav className="bottom-nav" aria-label="Main navigation">
-        {navItems.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            className={state.activeTab === id ? "active" : ""}
-            onClick={() => patchState({ activeTab: id })}
-            aria-current={state.activeTab === id ? "page" : undefined}
-          >
-            <span className="nav-icon"><Icon size={20} strokeWidth={state.activeTab === id ? 2.6 : 2} /></span>
-            <span>{label}</span>
-          </button>
-        ))}
-      </nav>
+      <HomeNavigation active={state.activeTab} onChange={activeTab => patchState({ activeTab })} />
 
       {modal !== "none" && (
         <div className="modal-layer" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setModal("none")}>
@@ -798,18 +762,6 @@ function RideTimeline({ stage }: { stage: RideStage }) {
   const steps = ["accepted", "enroute", "nearby", "arrived", "active"];
   const activeIndex = Math.max(0, steps.indexOf(stage === "paused" ? "active" : stage));
   return <div className="ride-timeline">{steps.map((step, index) => <span key={step} className={index <= activeIndex ? "done" : ""}><i />{step === "enroute" ? "On the way" : step === "nearby" ? "Near you" : step === "active" ? "Together" : step}</span>)}</div>;
-}
-
-function RequestsScreen({ requests, onAdd, onRemove }: { requests: PitStop[]; onAdd: (kind: PitStop["kind"]) => void; onRemove: (id: string) => void }) {
-  return (
-    <section className="screen content-screen requests-screen">
-      <ContentHeader kicker="REQUESTS" title="What should they bring?" subtitle="Add it before pickup or while they’re on the way." />
-      <div className="request-grid">{requestKinds.map((item) => <button key={item.kind} onClick={() => onAdd(item.kind)}><span>{item.emoji}</span><strong>{item.title}</strong><small>{item.detail}</small><i><Plus size={16} /></i></button>)}</div>
-      <div className="section-heading"><div><span>This ride</span><h2>Your requests</h2></div><em>{requests.length}</em></div>
-      {requests.length ? <div className="request-list">{requests.map((item) => <div key={item.id}><span>{item.emoji}</span><p><strong>{item.status === "secured" ? `${item.title} secured` : item.title}</strong>{item.detail}</p><em className={`request-status ${item.status}`}>{requestStatusCopy[item.status]}</em><button onClick={() => onRemove(item.id)} aria-label={`Remove ${item.title}`}><X size={16} /></button></div>)}</div> : <div className="empty-card"><Sparkles size={22} /><strong>Nothing extra yet</strong><span>Little requests for the next ride will appear here.</span></div>}
-      <div className="request-note"><Info size={16} /><span>He can mark an item secured or unavailable. You’ll always see the update.</span></div>
-    </section>
-  );
 }
 
 function UsScreen() {

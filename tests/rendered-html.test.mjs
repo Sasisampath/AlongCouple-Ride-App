@@ -70,7 +70,8 @@ test("demo controls and synthetic map locations stay isolated from production", 
   const map = await readFile(new URL("../app/components/live-map.tsx", import.meta.url), "utf8");
 
   assert.match(demo, /<AlongApp demoMode/);
-  assert.match(page, /onBrand=\{demoMode \?/);
+  assert.match(page, /<HomeExperience/);
+  assert.match(page, /demoMode=\{demoMode\}/);
   assert.match(page, /modal === "demo" && demoMode/);
   assert.match(map, /demoMode && rider && !driver/);
   assert.match(map, /aria-label="Along"/);

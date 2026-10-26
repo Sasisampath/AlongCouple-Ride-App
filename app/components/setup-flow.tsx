@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, X } from "lucide-react";
 import type { Role } from "../lib/types";
+import { SignInPlaceholder } from "./intro-experience";
 import "./setup-flow.css";
 
 export const SETUP_KEY = "along.setup.v1";
@@ -54,6 +55,7 @@ export type AccountSession = { authenticated: boolean; signInUrl: string | null 
 export function AccountGate({ session, pairing, onClose, partnerInvite }: { session: AccountSession; pairing: boolean; onClose: () => void; partnerInvite?: { code: string; url: string } }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [feedback, setFeedback] = useState("");
+  const [showSignIn, setShowSignIn] = useState(false);
   const copyInvite = async () => {
     if (!partnerInvite) return;
     try { await navigator.clipboard.writeText(partnerInvite.url); setFeedback("Link copied"); }
@@ -65,8 +67,9 @@ export function AccountGate({ session, pairing, onClose, partnerInvite }: { sess
     try { await navigator.share({ title: "Along", url: partnerInvite.url }); }
     catch (error) { if (!(error instanceof DOMException && error.name === "AbortError")) setFeedback("Couldn’t share. Try copying the link."); }
   };
-  useEffect(() => { ref.current?.showModal(); const node = ref.current; return () => node?.close(); }, []);
+  useEffect(() => { ref.current?.showModal(); const node = ref.current; return () => node?.close(); }, [showSignIn]);
   const invite = pairing && session.authenticated;
+  if (showSignIn) return <SignInPlaceholder onClose={onClose} onStart={onClose} />;
   return <dialog ref={ref} className="setup-dialog" onCancel={onClose} aria-labelledby="account-title">
     <button className="setup-close" aria-label="Close" onClick={onClose}><X size={20} /></button>
     <img className="setup-account-art" src={invite ? "/setup/invite.png" : "/setup/sign-in.png"} alt="" />
@@ -78,7 +81,8 @@ export function AccountGate({ session, pairing, onClose, partnerInvite }: { sess
       <button className="setup-primary" disabled={!partnerInvite} onClick={shareInvite}>Share invite</button><button className="setup-secondary" disabled={!partnerInvite} onClick={copyInvite}>Copy link</button>
       {feedback && <p role="status">{feedback}</p>}
     </> : <>
-      {session.signInUrl ? <a className="setup-primary" href={session.signInUrl}>Continue with ChatGPT <ArrowRight size={19} /></a> : <p>Sign-in isn’t available in this version yet. You can keep exploring Along.</p>}
+      <p>Sign in to invite your person and make Along yours.</p>
+      {session.signInUrl ? <a className="setup-primary setup-signin-cta" href={session.signInUrl}>Sign in <ArrowRight size={19} /></a> : <button className="setup-primary setup-signin-cta" onClick={() => setShowSignIn(true)}>Sign in <ArrowRight size={19} /></button>}
     </>}
     <button className="setup-secondary" onClick={onClose}>{invite ? "Skip for now" : "Not now"}</button>
   </dialog>;
