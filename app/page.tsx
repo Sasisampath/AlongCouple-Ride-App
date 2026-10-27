@@ -48,6 +48,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LiveMap } from "./components/live-map";
 import { HomeExperience, HomeNavigation } from "./components/home-experience";
 import { RequestsExperience } from "./components/requests-experience";
+import { TogetherExperience } from "./components/together-experience";
 import { IntroExperience } from "./components/intro-experience";
 import { SetupFlow, AccountGate, readSetup, type AccountSession } from "./components/setup-flow";
 import type { DeviceLocation, SpeedReading } from "./lib/geolocation";
@@ -385,7 +386,7 @@ export function AlongApp({ demoMode = false, skipWelcome = false, onBackToIntro 
         />
       )}
 
-      {state.activeTab === "us" && <UsScreen />}
+      {state.activeTab === "us" && <TogetherExperience authenticated={accountSession.authenticated} demoMode={demoMode} selectedAvatar={profileAvatar} onConnect={() => setAccountGate(accountSession.authenticated ? "pair" : "signin")} />}
 
       {state.activeTab === "profile" && (
         <ProfileScreen
@@ -762,23 +763,6 @@ function RideTimeline({ stage }: { stage: RideStage }) {
   const steps = ["accepted", "enroute", "nearby", "arrived", "active"];
   const activeIndex = Math.max(0, steps.indexOf(stage === "paused" ? "active" : stage));
   return <div className="ride-timeline">{steps.map((step, index) => <span key={step} className={index <= activeIndex ? "done" : ""}><i />{step === "enroute" ? "On the way" : step === "nearby" ? "Near you" : step === "active" ? "Together" : step}</span>)}</div>;
-}
-
-function UsScreen() {
-  return (
-    <section className="screen content-screen us-screen">
-      <ContentHeader kicker="US" title="184 km together" subtitle="The routes, treats, and little detours that belong to just you two." />
-      <div className="us-hero">
-        <div className="memory-map"><div className="memory-road a" /><div className="memory-road b" /><div className="memory-road c" /><span className="memory-pin one"><HomeIcon size={15} /></span><span className="memory-pin two"><Coffee size={15} /></span><span className="memory-pin three"><Heart size={14} /></span><div className="memory-route" /><div className="hero-pair"><span>M</span><SasiAvatar /></div></div>
-        <div className="us-stats"><span><strong>24</strong>rides</span><span><strong>11</strong>coffee stops</span><span><strong>8</strong>chocolate missions</span><span><strong>6</strong>late-night pickups</span></div>
-      </div>
-      <div className="section-heading"><div><span>Saved together</span><h2>Our places</h2></div></div>
-      <div className="favorite-places"><PlaceCard className="home" icon={<HomeIcon />} label="Home" detail="18 arrivals together" /><PlaceCard className="cafe" icon={<Coffee />} label="Favourite café" detail="7 stops together" /><PlaceCard className="office" icon={<Store />} label="Her office" detail="12 pickups together" /><PlaceCard className="beach" icon={<Navigation2 />} label="Beach road" detail="3 sunset rides" /></div>
-      <div className="section-heading"><div><span>Recent</span><h2>Journeys</h2></div><button>See all</button></div>
-      <article className="memory-card"><div className="memory-art"><span>SAT<br/>8:42</span><i>☂</i></div><div><strong>Sasi → Monu → Writer’s Café</strong><p>11.2 km · 34 min</p><div className="memory-chips"><span>🍫 Chocolate secured</span></div></div></article>
-      <article className="memory-card"><div className="memory-art warm"><span>THU<br/>6:15</span><i>☕</i></div><div><strong>Office → Blue Tokai → Home</strong><p>8.6 km · 29 min</p><div className="memory-chips"><span>☕ Coffee stop</span></div></div></article>
-    </section>
-  );
 }
 
 type ProfileProps = { state: AppState; profileName: string; profileAvatar: string | null; onConnect: () => void; permission: string; installPrompt: InstallPrompt | null; onInstall: () => void; onPatch: (patch: Partial<AppState>) => void };
