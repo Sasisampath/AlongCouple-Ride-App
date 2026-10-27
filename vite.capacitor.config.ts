@@ -14,7 +14,8 @@ export default defineConfig({
   },
   build: {
     outDir: fileURLToPath(new URL("./dist/capacitor", import.meta.url)),
-    emptyOutDir: false,
+    // Do not retain removed PNGs or previous hashed assets in the native bundle.
+    emptyOutDir: true,
     sourcemap: true,
   },
 });

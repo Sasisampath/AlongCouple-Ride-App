@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "
 import { completeIntro, introAssets, readIntroState, saveIntroPage } from "../lib/intro";
 import { splashTiming } from "../lib/splash";
 import { BrandSplash } from "./brand-splash";
+import { imageGroups, preloadImages } from "../lib/image-loading";
 import "@fontsource-variable/bricolage-grotesque/wght.css";
 import "@fontsource-variable/inter/wght.css";
 import "./intro-experience.css";
@@ -83,12 +84,12 @@ function IntroCarousel({ initialPage, preview, onComplete }: { initialPage: numb
     if (!preview) {
       try { saveIntroPage(window.localStorage, page); } catch { /* Storage may be disabled. */ }
     }
-    // Warm the next finished PNG only, keeping the initial request small.
+    // Decode the next bundled illustration before the next page is opened.
     const next = slides[page + 1];
     if (next) {
-      const image = new Image();
-      image.src = next.image;
+      void preloadImages([next.image]);
     }
+    if (page >= 2) void preloadImages(imageGroups.setup);
     if (focusHeading.current) {
       heading.current?.focus({ preventScroll: true });
       focusHeading.current = false;
@@ -176,10 +177,12 @@ export function IntroExperience({ children }: { children: (backToIntro: () => vo
     const requested = Number(query.get("slide") || 1) - 1;
     setInitialPage(isPreview && Number.isInteger(requested) ? Math.max(0, Math.min(3, requested)) : saved.page);
     // Warm the first illustration during the pen sequence. Nothing remote is
-    // required; the SVG is inline and the final PNG is packaged with the app.
+    // required; the SVG is inline and the final WebP is packaged with the app.
     if (target === "story") {
-      const first = new Image();
-      first.src = slides[isPreview ? Math.max(0, Math.min(3, Number.isInteger(requested) ? requested : 0)) : saved.page].image;
+      const first = slides[isPreview ? Math.max(0, Math.min(3, Number.isInteger(requested) ? requested : 0)) : saved.page].image;
+      void preloadImages([first, ...imageGroups.onboarding]);
+    } else {
+      void preloadImages([...imageGroups.main, ...imageGroups.requests, ...imageGroups.together]);
     }
     if (holdAt !== undefined) return;
     const reveal = setTimeout(() => setPhase("reveal"), timing.reveal);

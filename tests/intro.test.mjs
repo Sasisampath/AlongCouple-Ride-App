@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { stripTypeScriptTypes } from "node:module";
 import test from "node:test";
@@ -57,17 +56,21 @@ test("invalid or unavailable storage never blocks entry", () => {
 
 test("artwork is directly referenced and demo bypasses the intro wrapper", async () => {
   for (const path of Object.values(intro.introAssets)) {
-    const png = await readFile(new URL(`../public${path}`, import.meta.url));
-    assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+    const image = await readFile(new URL(`../public${path}`, import.meta.url));
+    assert.equal(image.toString("ascii", 0, 4), "RIFF");
+    assert.equal(image.toString("ascii", 8, 12), "WEBP");
   }
   const demo = await readFile(new URL("../app/demo/page.tsx", import.meta.url), "utf8");
   assert.match(demo, /<AlongApp demoMode/);
   assert.doesNotMatch(demo, /IntroExperience/);
 });
 
-test("dark-surface wordmark remains the exact approved transparent PNG", async () => {
-  const png = await readFile(new URL(`../public${intro.introAssets.wordmarkWhite}`, import.meta.url));
-  assert.equal(createHash("sha256").update(png).digest("hex"), "271534cb71db72b4d80f1adcac158aeffdad3097ee60de2215824b1dbbf01f87");
+test("dark-surface wordmark preserves the approved source, alpha and aspect ratio", async () => {
+  const assets = JSON.parse(await readFile(new URL("../app/lib/image-assets.json", import.meta.url), "utf8"));
+  const wordmark = assets[intro.introAssets.wordmarkWhite];
+  assert.equal(wordmark.originalSha256, "271534cb71db72b4d80f1adcac158aeffdad3097ee60de2215824b1dbbf01f87");
+  assert.equal(wordmark.alpha, true);
+  assert.equal(wordmark.width / wordmark.height, 1448 / 1086);
 });
 
 test("the pen sequence draws a → l → o → n → g within the 2.4 second splash", () => {

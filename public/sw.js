@@ -1,4 +1,4 @@
-const CACHE = "along-static-v1";
+const CACHE = "along-static-webp-v2";
 const OFFLINE = "/offline.html";
 const PRECACHE = [
   OFFLINE,
@@ -11,7 +11,18 @@ const PRECACHE = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)));
+  event.waitUntil(caches.open(CACHE).then(async (cache) => {
+    await cache.addAll(PRECACHE);
+    // Only bundled UI assets are listed here. Auth, pair data and user photos
+    // never enter this shared static cache. Missing legacy sources are excluded.
+    try {
+      const response = await fetch("/image-precache.json", { cache: "no-store" });
+      if (response.ok) {
+        const assets = await response.json();
+        await Promise.allSettled(assets.filter(path => /^\/(brand|onboarding|setup|requests|together)\/[\w-]+\.webp$/.test(path)).map(path => cache.add(path)));
+      }
+    } catch { /* Runtime requests populate the cache when install is offline. */ }
+  }));
   self.skipWaiting();
 });
 
@@ -35,17 +46,16 @@ self.addEventListener("fetch", (event) => {
   const staticAsset =
     url.pathname.startsWith("/_next/static/") ||
     url.pathname.startsWith("/icons/") ||
+    /^\/(brand|onboarding|setup|requests|together)\/[\w-]+\.webp$/.test(url.pathname) ||
     ["/manifest.webmanifest", "/favicon.svg", "/og.png"].includes(url.pathname);
 
   if (!staticAsset) return;
 
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      const fresh = fetch(request).then((response) => {
-        if (response.ok) void caches.open(CACHE).then((cache) => cache.put(request, response.clone()));
-        return response;
-      });
-      return cached || fresh;
-    }),
-  );
+  const fresh = fetch(request).then(async (response) => {
+    if (response.ok) await caches.open(CACHE).then(cache => cache.put(request, response.clone()));
+    return response;
+  });
+  // Keep refresh alive and handle offline failures even when a cached response wins.
+  event.waitUntil(fresh.catch(() => {}));
+  event.respondWith(caches.match(request).then(cached => cached || fresh));
 });

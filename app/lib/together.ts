@@ -1,8 +1,8 @@
 import type { AlongRequest } from "./requests";
 
 export const togetherAssets = {
-  milestone: "/together/together-milestone.png", memory: "/together/together-memory.png",
-  spark: "/together/together-spark.png", question: "/together/together-question.png",
+  milestone: "/together/together-milestone.webp", memory: "/together/together-memory.webp",
+  spark: "/together/together-spark.webp", question: "/together/together-question.webp",
 } as const;
 export const starterQuestion = { id: "small-smile-v1", text: "What’s one small thing that made you smile today?" };
 export type TogetherAnswer = { questionId: string; question: string; text: string; savedAt: number };

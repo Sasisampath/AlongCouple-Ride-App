@@ -22,7 +22,7 @@ export function BrandSplash({ ready, reducedMotion, holdAt }: {
         <svg className="brand-splash-logo" viewBox="0 0 1448 1086" aria-hidden="true">
           <defs>
             {/* Static isolation of the existing dot, not a wipe of the logo.
-                The two images use the same unchanged PNG and coordinates. */}
+                The two images use the same optimized source and unchanged coordinates. */}
             <mask id={`${id}-letters`} maskUnits="userSpaceOnUse" x="0" y="0" width="1448" height="1086">
               <path d="M0 0H1448V1086H0Z" fill="white" />
               <circle cx="1272" cy="626" r="60" fill="black" />

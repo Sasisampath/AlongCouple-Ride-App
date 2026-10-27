@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, X } from "lucide-react";
 import type { Role } from "../lib/types";
 import { SignInPlaceholder } from "./intro-experience";
+import { optimizedImage, preloadImages, imageGroups } from "../lib/image-loading";
 import "./setup-flow.css";
 
 export const SETUP_KEY = "along.setup.v1";
@@ -12,7 +13,7 @@ export function readSetup(): SetupChoice {
   try {
     const value = JSON.parse(localStorage.getItem(SETUP_KEY) || "null");
     return { role: ["rider", "driver"].includes(value?.role) ? value.role : null,
-      avatar: /^\/setup\/avatar-[1-8]\.png$/.test(value?.avatar || "") ? value.avatar : null,
+      avatar: /^\/setup\/avatar-[1-8]\.(png|webp)$/.test(value?.avatar || "") ? optimizedImage(value.avatar) : null,
       complete: value?.complete === true };
   } catch { return { role: null, avatar: null, complete: false }; }
 }
@@ -23,6 +24,7 @@ function save(choice: SetupChoice) {
 export function SetupFlow({ onComplete }: { onComplete: (choice: SetupChoice) => void }) {
   const [choice, setChoice] = useState<SetupChoice>(() => readSetup());
   const [step, setStep] = useState(0);
+  useEffect(() => { void preloadImages([...imageGroups.setup, ...imageGroups.main]); }, []);
   const choose = (patch: Partial<SetupChoice>) => {
     const next = { ...choice, ...patch }; setChoice(next); save(next);
   };
@@ -31,20 +33,20 @@ export function SetupFlow({ onComplete }: { onComplete: (choice: SetupChoice) =>
     else { const result = { ...choice, complete: true }; save(result); onComplete(result); }
   };
   return <main className="setup-shell">
-    <header><img src="/brand/along-wordmark.png" alt="Along" /><button onClick={next}>Skip</button></header>
+    <header><img src="/brand/along-wordmark.webp" alt="Along" width={95} height={58} decoding="async" /><button onClick={next}>Skip</button></header>
     <h1>{step === 0 ? <>How do you<br />usually ride?</> : <>Pick your<br /><em>Along</em></>}</h1>
     {step === 0 ? <>
-      <div className="setup-hero"><img src="/setup/role-hero.png" alt="Two people riding a scooter together" /></div>
+      <div className="setup-hero"><img src="/setup/role-hero.webp" alt="Two people riding a scooter together" width={768} height={768} decoding="async" /></div>
       <div className="setup-roles" role="group" aria-label="Your usual role">
         {([{ role: "driver", name: "Rider", image: "rider" }, { role: "rider", name: "Pillion", image: "pillion" }] as const).map(item =>
           <button key={item.role} aria-pressed={choice.role === item.role} onClick={() => choose({ role: item.role })}>
-            <img src={`/setup/${item.image}.png`} alt="" /><strong>{item.name}</strong><i>{choice.role === item.role && <Check size={14} />}</i>
+            <img src={`/setup/${item.image}.webp`} alt="" width={82} height={82} decoding="async" /><strong>{item.name}</strong><i>{choice.role === item.role && <Check size={14} />}</i>
           </button>)}
       </div>
     </> : <div className="setup-avatars" role="group" aria-label="Choose your avatar">
-      {Array.from({ length: 8 }, (_, i) => `/setup/avatar-${i + 1}.png`).map((src, i) =>
+      {Array.from({ length: 8 }, (_, i) => `/setup/avatar-${i + 1}.webp`).map((src, i) =>
         <button key={src} aria-label={`Avatar ${i + 1}`} aria-pressed={choice.avatar === src} onClick={() => choose({ avatar: src })}>
-          <img src={src} alt="" />{choice.avatar === src && <i><Check size={14} /></i>}
+          <img src={src} alt="" width={512} height={512} decoding="async" />{choice.avatar === src && <i><Check size={14} /></i>}
         </button>)}
     </div>}
     <footer><button className="setup-primary" onClick={next}>That’s me <ArrowRight size={21} /></button></footer>
@@ -72,7 +74,7 @@ export function AccountGate({ session, pairing, onClose, partnerInvite }: { sess
   if (showSignIn) return <SignInPlaceholder onClose={onClose} onStart={onClose} />;
   return <dialog ref={ref} className="setup-dialog" onCancel={onClose} aria-labelledby="account-title">
     <button className="setup-close" aria-label="Close" onClick={onClose}><X size={20} /></button>
-    <img className="setup-account-art" src={invite ? "/setup/invite.png" : "/setup/sign-in.png"} alt="" />
+    <img className="setup-account-art" src={invite ? "/setup/invite.webp" : "/setup/sign-in.webp"} alt="" width={512} height={512} decoding="async" />
     <h2 id="account-title">{invite ? "Bring your person Along" : "Ready to make it yours?"}</h2>
     {invite ? <>
       <label>Pairing code<input readOnly value={partnerInvite?.code ?? ""} placeholder="Not available yet" /></label>

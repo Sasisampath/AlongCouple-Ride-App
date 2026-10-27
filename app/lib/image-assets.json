@@ -1,0 +1,242 @@
+{
+  "/brand/along-app-icon.webp": {
+    "width": 256,
+    "height": 256,
+    "bytes": 3350,
+    "originalBytes": 1210881,
+    "alpha": false,
+    "originalSha256": "5779ad67d9a0b2be3c3ceb2347046317ab157836be64819bc2455dac0ec5f8ee"
+  },
+  "/brand/along-logo-white.webp": {
+    "width": 768,
+    "height": 576,
+    "bytes": 22354,
+    "originalBytes": 300990,
+    "alpha": true,
+    "originalSha256": "271534cb71db72b4d80f1adcac158aeffdad3097ee60de2215824b1dbbf01f87"
+  },
+  "/brand/along-map-icon.webp": {
+    "width": 256,
+    "height": 246,
+    "bytes": 5410,
+    "originalBytes": 1057501,
+    "alpha": true,
+    "originalSha256": "9fcc7533096037d8c0f99601eb18ce89ee748a88aeac99faaace2fd4e62227c5"
+  },
+  "/brand/along-wordmark.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 5818,
+    "originalBytes": 1054001,
+    "alpha": false,
+    "originalSha256": "8e9f62fa7d96bde024cae270e4f94bd72b627ff118e63bbedfc8ceb8ce300a97"
+  },
+  "/onboarding/onboarding-01-stay-close.webp": {
+    "width": 768,
+    "height": 768,
+    "bytes": 120826,
+    "originalBytes": 1809998,
+    "alpha": true,
+    "originalSha256": "54425c23c71f852b53f3b053cda24f4384f6de6eee08cf54db0666e5e064e2c2"
+  },
+  "/onboarding/onboarding-02-see-distance.webp": {
+    "width": 768,
+    "height": 768,
+    "bytes": 92826,
+    "originalBytes": 1255977,
+    "alpha": true,
+    "originalSha256": "4478627c128b462072412473f1803ed48b8b70fe3168eab8ef5aa370a819e6c2"
+  },
+  "/onboarding/onboarding-03-little-joys.webp": {
+    "width": 768,
+    "height": 768,
+    "bytes": 150586,
+    "originalBytes": 2009893,
+    "alpha": true,
+    "originalSha256": "a9703e4be40cdde2ccc7ba4f07da80104dc00b0f40067c7b0fe7c2bf47113c67"
+  },
+  "/requests/care.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 25610,
+    "originalBytes": 884138,
+    "alpha": true,
+    "originalSha256": "9784bb3e8ea63119d08811dd2b244d15f6c2168f26a138af9174ea2dddfc463f"
+  },
+  "/requests/chocolate.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 27378,
+    "originalBytes": 984193,
+    "alpha": true,
+    "originalSha256": "b72cdbf3f65f1ff61cfb04fc474e17d2c7052f61b2e5bb1a7d24423801f2e158"
+  },
+  "/requests/coffee.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 23934,
+    "originalBytes": 892109,
+    "alpha": true,
+    "originalSha256": "6d7f01e487a918b3548d80a53e7b4ae21313bb8189d68b5195779b130cdbe17c"
+  },
+  "/requests/flowers.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 27588,
+    "originalBytes": 922517,
+    "alpha": true,
+    "originalSha256": "5c3b8b8598f976a9f53405d8ab18358b70c9bb3d100b016a0736e769fdcc695c"
+  },
+  "/requests/grocery.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 27162,
+    "originalBytes": 975154,
+    "alpha": true,
+    "originalSha256": "4e00b96d11ac3bfe909620e852f9916a1bc34ca6a271f048c2c44e18c3a773c5"
+  },
+  "/requests/something-else.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 17224,
+    "originalBytes": 778082,
+    "alpha": true,
+    "originalSha256": "b9059c6de34dd76d9ec83578e45ccbf78a5f3f5b30e80ddd974c86d5c632ad96"
+  },
+  "/setup/avatar-1.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 36652,
+    "originalBytes": 1544891,
+    "alpha": true,
+    "originalSha256": "644d0a0d8de5543a7a37c8ab36b8bc514c08107df8012208006083ad004241ea"
+  },
+  "/setup/avatar-2.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 35670,
+    "originalBytes": 1562937,
+    "alpha": true,
+    "originalSha256": "f6d834716c022a30c3c894646fdf769fff5b753c682a1d64cf985fbe63dcb81c"
+  },
+  "/setup/avatar-3.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 46124,
+    "originalBytes": 1651443,
+    "alpha": true,
+    "originalSha256": "1c2ebae429fb92f66c40494fc353186ff98675df6b447f98ff41365026e26085"
+  },
+  "/setup/avatar-4.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 41786,
+    "originalBytes": 1405852,
+    "alpha": true,
+    "originalSha256": "cad2d81d53c7a7a2a8344c08a10d746adb7ab28c11b88242f8fbc8022c07b244"
+  },
+  "/setup/avatar-5.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 41922,
+    "originalBytes": 1717102,
+    "alpha": true,
+    "originalSha256": "113b1357c3fa98822f771ab7b5112e1e64d3a3c54c64b63157ef369987018e42"
+  },
+  "/setup/avatar-6.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 34514,
+    "originalBytes": 1404160,
+    "alpha": true,
+    "originalSha256": "4f077146f6b56c3ff91802c6708e0d2f99b38f1ff2caede29a2063d6b5a8404f"
+  },
+  "/setup/avatar-7.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 37852,
+    "originalBytes": 1446064,
+    "alpha": true,
+    "originalSha256": "653ee54c96cafb7aa406fd382e4658c2d379560c826548588f9f75b0a57b4028"
+  },
+  "/setup/avatar-8.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 39432,
+    "originalBytes": 1679450,
+    "alpha": true,
+    "originalSha256": "fd2488c7966f3c1519468f12ede781dcdf8029e19fdb4f33b853beaf3be2c15f"
+  },
+  "/setup/invite.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 49368,
+    "originalBytes": 1406544,
+    "alpha": true,
+    "originalSha256": "dd9ee9a84f0473c2856b4b2797cdacdfd9a6a28bac92bc4bbcbb1b8c6233f7f5"
+  },
+  "/setup/pillion.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 27950,
+    "originalBytes": 1266870,
+    "alpha": true,
+    "originalSha256": "90ccd5a2b8be173fbdcb8182663e46927c006b1cb0639f29feeb4f20171b1a5e"
+  },
+  "/setup/rider.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 26296,
+    "originalBytes": 1108602,
+    "alpha": true,
+    "originalSha256": "9ef7f790e89890f430a3d034a2fd73c69b69d2e2cc3dd1e9f130614a30cc5d56"
+  },
+  "/setup/role-hero.webp": {
+    "width": 768,
+    "height": 768,
+    "bytes": 96168,
+    "originalBytes": 1493878,
+    "alpha": true,
+    "originalSha256": "9c3616ebe768ff6a0fac651148ab81fe740908c12ae092dfa358d7efba6f114c"
+  },
+  "/setup/sign-in.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 53638,
+    "originalBytes": 1655200,
+    "alpha": true,
+    "originalSha256": "215fa9f70886fb119754c4b695b0308e27879d467df2a6cf47d842cc228c4dc1"
+  },
+  "/together/together-memory.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 19766,
+    "originalBytes": 888599,
+    "alpha": true,
+    "originalSha256": "c3386fb3ce88104037d3a7c2d893852bd4d3e555c4e9f1ef606bed4600870cb4"
+  },
+  "/together/together-milestone.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 29448,
+    "originalBytes": 1298826,
+    "alpha": true,
+    "originalSha256": "70a99619148a59aca901e29fc78b5eec4287a6b918c9d4746ea601c3fa97b2ee"
+  },
+  "/together/together-question.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 25614,
+    "originalBytes": 725997,
+    "alpha": true,
+    "originalSha256": "dde9a4824f5efc05ce487e8f9eae99398a4dace09b301f51a68a77b237b7db97"
+  },
+  "/together/together-spark.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 31370,
+    "originalBytes": 723993,
+    "alpha": true,
+    "originalSha256": "f8b483f595532e5a4594836bbcb50185160bac877428bf1e8d34e08a4923d34f"
+  }
+}

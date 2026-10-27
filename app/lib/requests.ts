@@ -1,10 +1,10 @@
 export const requestCategories = [
-  { id: "chocolate", label: "Chocolate", headline: "Chocolate?", image: "/requests/chocolate.png", placeholder: "Dairy Milk please" },
-  { id: "coffee", label: "Coffee", headline: "Coffee?", image: "/requests/coffee.png", placeholder: "Cold coffee please" },
-  { id: "flowers", label: "Flowers", headline: "Flowers?", image: "/requests/flowers.png", placeholder: "A little bunch, please" },
-  { id: "care", label: "Care", headline: "What do you need?", image: "/requests/care.png", placeholder: "Paracetamol please" },
-  { id: "grocery", label: "Grocery", headline: "What should they get?", image: "/requests/grocery.png", placeholder: "Milk, bread..." },
-  { id: "custom", label: "Something else", headline: "Ask for something", image: "/requests/something-else.png", placeholder: "What do you need?" },
+  { id: "chocolate", label: "Chocolate", headline: "Chocolate?", image: "/requests/chocolate.webp", placeholder: "Dairy Milk please" },
+  { id: "coffee", label: "Coffee", headline: "Coffee?", image: "/requests/coffee.webp", placeholder: "Cold coffee please" },
+  { id: "flowers", label: "Flowers", headline: "Flowers?", image: "/requests/flowers.webp", placeholder: "A little bunch, please" },
+  { id: "care", label: "Care", headline: "What do you need?", image: "/requests/care.webp", placeholder: "Paracetamol please" },
+  { id: "grocery", label: "Grocery", headline: "What should they get?", image: "/requests/grocery.webp", placeholder: "Milk, bread..." },
+  { id: "custom", label: "Something else", headline: "Ask for something", image: "/requests/something-else.webp", placeholder: "What do you need?" },
 ] as const;
 
 export type RequestCategory = typeof requestCategories[number]["id"];

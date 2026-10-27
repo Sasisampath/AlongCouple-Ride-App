@@ -5,6 +5,7 @@ import { ArrowRight, CalendarDots, CameraPlus, CheckCircle, ChatCircleDots, Hear
 import { readTourRequests, requestCategories, requestDate } from "../lib/requests";
 import { completedLittleMoments, emptyTogetherData, formatTogetherDate, isMemoryPhoto, loadLocalMemories, localDate, readTogetherText, relationshipDays, saveLocalMemory, saveTogetherText, starterQuestion, togetherAssets, type TogetherAnswer, type TogetherData, type TogetherMemory, type TogetherPair, type TogetherSync } from "../lib/together";
 import "./together-experience.css";
+import { optimizedImage } from "../lib/image-loading";
 
 type Props = { authenticated: boolean; demoMode: boolean; selectedAvatar: string | null; onConnect: () => void; pair?: TogetherPair; sync?: TogetherSync };
 type Sheet = "answer" | "memory" | "date" | null;
@@ -126,7 +127,7 @@ function TogetherPanel({ authenticated, demoMode, selectedAvatar, onConnect, pai
   return <section className="along-together" aria-label="Together">
     <header className="along-together-header"><h1>Together</h1>{tour && <span className="along-home-status"><i />Tour mode</span>}</header>
     {!pair && !tour ? <article className="along-together-invite">
-      <img src="/setup/invite.png" alt="Two people connecting with Along" width={160} height={160} />
+      <img src="/setup/invite.webp" alt="Two people connecting with Along" width={160} height={160} decoding="async" />
       <h2>Bring your<br />person Along</h2>
       <button className="along-together-primary" onClick={onConnect}><UserPlus size={20} />Invite your person</button>
       <button className="along-together-text" onClick={() => setExploring(true)}>Explore first</button>
@@ -134,7 +135,7 @@ function TogetherPanel({ authenticated, demoMode, selectedAvatar, onConnect, pai
       <article className="along-together-story">
         <div className="along-together-avatars" aria-label={tour ? "Preview couple avatars" : "Your selected couple avatars"}>
           <Avatar src={pair?.ownAvatar || selectedAvatar} label="Your avatar" />
-          <Avatar src={pair ? pair.partnerAvatar : "/setup/avatar-7.png"} label={tour ? "Tour partner avatar" : "Your person’s avatar"} />
+          <Avatar src={pair ? pair.partnerAvatar : "/setup/avatar-7.webp"} label={tour ? "Tour partner avatar" : "Your person’s avatar"} />
           <Heart size={19} weight="fill" aria-hidden="true" />
         </div>
         <div className="along-together-story-copy"><div><h2>{days === null ? "Your story together" : <>Together for {days} {days === 1 ? "day" : "days"} <span>❤️</span></>}</h2>
@@ -193,7 +194,7 @@ function TogetherPanel({ authenticated, demoMode, selectedAvatar, onConnect, pai
 }
 
 function Avatar({ src, label }: { src?: string | null; label: string }) {
-  return <span>{src ? <img src={src} alt={label} width={64} height={64} /> : <UserCircle size={52} aria-label={label} weight="light" />}</span>;
+  return <span>{src ? <img src={optimizedImage(src)} alt={label} width={64} height={64} decoding="async" /> : <UserCircle size={52} aria-label={label} weight="light" />}</span>;
 }
 function MemoryPhoto({ photo, caption }: { photo: Blob; caption: string }) {
   const image = useRef<HTMLImageElement>(null);

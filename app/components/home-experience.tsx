@@ -6,6 +6,7 @@ import { HomeMap } from "./home-map";
 import { distanceLabel, locationAge, partnerUnavailable, realCoordinate, tourPosition, tourRoute, tourStages, tourUser, type HomeConnection, type HomeStage } from "../lib/home-state";
 import type { DeviceLocation, LocationPermission } from "../lib/geolocation";
 import type { Tab } from "../lib/types";
+import { imageGroups, optimizedImage, preloadImages } from "../lib/image-loading";
 import "./home-experience.css";
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
   connection?: HomeConnection; // Deliberately absent until the real pairing adapter is available.
 };
 export function HomeExperience({ authenticated, demoMode, selectedAvatar, location, permission, locationStatus, onAllowLocation, onInvite, connection }: Props) {
+  useEffect(() => { void preloadImages([...imageGroups.main, ...imageGroups.requests, ...imageGroups.together]); }, []);
   const [tour, setTour] = useState(() => {
     if (demoMode) return true;
     try { return !authenticated && localStorage.getItem("along.home.explored.v1") !== "true"; } catch { return !authenticated; }
@@ -59,7 +61,8 @@ export function HomeExperience({ authenticated, demoMode, selectedAvatar, locati
   const rawEta = isTour ? stage === "nearby" ? 1 : 8 : connection?.etaMinutes;
   const eta = rawEta != null && Number.isFinite(rawEta) && rawEta >= 0 ? Math.ceil(rawEta) : null;
   const partnerName = connection?.name?.trim() || "Your person";
-  const avatar = isTour ? selectedAvatar || "/setup/avatar-7.png" : connection?.avatar ?? null;
+  const avatarSource = isTour ? selectedAvatar || "/setup/avatar-7.webp" : connection?.avatar ?? null;
+  const avatar = avatarSource ? optimizedImage(avatarSource) : null;
   const needsPermission = !isTour && !own && !permissionDismissed;
   const runAction = async (action?: () => Promise<void>) => {
     if (!action || busy.current) return;
@@ -77,7 +80,7 @@ export function HomeExperience({ authenticated, demoMode, selectedAvatar, locati
   return <section className="along-home" aria-label="Home" style={{ "--home-card-height": `${cardHeight}px` } as CSSProperties}>
     <HomeMap own={own} partner={partner} avatar={avatar} name={partnerName} distance={distance} stale={stale} route={route} cardHeight={cardHeight} onLocate={locate} />
     <header className="along-home-header">
-      <img src="/brand/along-map-icon.png" alt="Along" />
+      <img src="/brand/along-map-icon.webp" alt="Along" width={44} height={44} decoding="async" />
       {isTour ? <span className="along-home-status"><i />Tour mode</span> : connection && <span className="along-home-status"><i className={connection.sharing ? "sharing" : "paused"} />Location {connection.sharing ? "shared" : "paused"}</span>}
     </header>
     <div ref={card} className="along-home-card" aria-live="polite" aria-atomic="true">
@@ -96,7 +99,7 @@ export function HomeExperience({ authenticated, demoMode, selectedAvatar, locati
         {primary("Try Come get me", () => setTourStage("requested"))}
         {secondary("Explore first", leaveTour)}
       </> : !isTour && !connection ? <>
-        <div className="along-home-invite"><img src="/setup/invite.png" alt="Two people connecting with Along" /><h1>Bring your<br />person Along</h1></div>
+        <div className="along-home-invite"><img src="/setup/invite.webp" alt="Two people connecting with Along" width={104} height={110} decoding="async" /><h1>Bring your<br />person Along</h1></div>
         {primary("Invite your person", onInvite, <UserPlus size={20} />)}
         {secondary("Explore first", () => { setTour(true); setTourStage("idle"); })}
       </> : stage === "requested" ? <>
@@ -111,7 +114,7 @@ export function HomeExperience({ authenticated, demoMode, selectedAvatar, locati
         <p>{distance ?? "Distance unavailable"}{!isTour && eta == null ? " · ETA unavailable" : ""}</p>
         <div className="along-home-actions"><button onClick={() => isTour ? setMessage("Tour mode — no message is sent to anyone.") : connection?.message()}><ChatCircleDots size={20} />Message</button><button onClick={() => setDetails(true)}><ListBullets size={20} />Details</button></div>
       </> : <>
-        <div className="along-home-partner">{avatar ? <img src={avatar} alt="" /> : <UserCircle size={46} />}<div><h1>{partnerName}</h1><p>{distance ?? "Distance unavailable"}{eta != null ? ` · ${eta} min` : ""}</p></div></div>
+        <div className="along-home-partner">{avatar ? <img src={avatar} alt="" width={54} height={54} decoding="async" /> : <UserCircle size={46} />}<div><h1>{partnerName}</h1><p>{distance ?? "Distance unavailable"}{eta !=null ? ` · ${eta} min` : ""}</p></div></div>
         {primary("Come get me", () => { if (!own) setPermissionDismissed(false); else void runAction(connection?.requestPickup); })}
       </>}
       {!isTour && own && location && (locationStatus === "paused" || now - location.timestamp > 90_000 || location.accuracy > 100) && <p className="along-home-note"><Crosshair size={14} />{location.accuracy > 100 ? "Your location accuracy is low" : "Your location updates are paused"}</p>}

@@ -70,7 +70,7 @@ export function HomeMap({ own, partner, avatar, name, distance, stale, route, ca
           const core = document.createElement("span"); element.append(core);
           if (key === "partner") {
             element.addEventListener("click", () => setBubble(value => !value));
-            const image = document.createElement("img"); image.alt = ""; core.append(image);
+            const image = document.createElement("img"); image.alt = ""; image.width = 50; image.height = 50; image.decoding = "async"; core.append(image);
             image.addEventListener("error", () => { image.hidden = true; core.textContent = "?"; });
           }
           marker = new lib.Marker({ element, anchor: "center" }).setLngLat(coordinate).addTo(map.current);

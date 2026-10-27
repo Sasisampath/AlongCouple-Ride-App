@@ -772,7 +772,7 @@ function ProfileScreen({ state, profileName, profileAvatar, onConnect, permissio
   return (
     <section className="screen content-screen profile-screen">
       <ContentHeader kicker="PROFILE" title={profileName} subtitle={`${isPillion ? "Pillion" : "Rider"} · private by design`} />
-      <div className="profile-identity"><div className={`profile-avatar ${isPillion ? "monu" : "sasi"}`}>{profileAvatar ? <img className="setup-profile-avatar" src={profileAvatar} alt="Your avatar" /> : <UserRound />}</div><div><strong>{profileName}</strong><span>{isPillion ? "Usually waiting" : "Usually riding"}</span></div></div>
+      <div className="profile-identity"><div className={`profile-avatar ${isPillion ? "monu" : "sasi"}`}>{profileAvatar ? <img className="setup-profile-avatar" src={profileAvatar} alt="Your avatar" width={64} height={64} decoding="async" /> : <UserRound />}</div><div><strong>{profileName}</strong><span>{isPillion ? "Usually waiting" : "Usually riding"}</span></div></div>
       <div className="section-heading"><div><span>Connected</span><h2>Your person</h2></div></div>
       <div className="partner-card"><div className="partner-avatars"><span className="monu-avatar">M</span><i><Heart size={10} fill="currentColor" /></i><SasiAvatar className="partner-photo" /></div><div><small>YOUR PERSON</small><strong>{isPillion ? "Sasi" : "Monu"}</strong><p>{isPillion ? "Rider · White Ather 450X" : "Pillion · Connected"}</p></div><button aria-label={`Call ${isPillion ? "Sasi" : "Monu"}`}><Phone size={18} /></button></div>
       <div className="partner-actions"><button>View profile</button><button onClick={onConnect}>Connect your partner</button></div>

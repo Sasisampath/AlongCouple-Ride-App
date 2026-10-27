@@ -2,12 +2,12 @@ export const INTRO_COMPLETE_KEY = "along.intro.v1";
 export const INTRO_PAGE_KEY = "along.intro.page.v1";
 
 export const introAssets = {
-  icon: "/brand/along-app-icon.png",
-  wordmark: "/brand/along-wordmark.png",
-  wordmarkWhite: "/brand/along-logo-white.png",
-  waiting: "/onboarding/onboarding-01-stay-close.png",
-  journey: "/onboarding/onboarding-02-see-distance.png",
-  requests: "/onboarding/onboarding-03-little-joys.png",
+  icon: "/brand/along-app-icon.webp",
+  wordmark: "/brand/along-wordmark.webp",
+  wordmarkWhite: "/brand/along-logo-white.webp",
+  waiting: "/onboarding/onboarding-01-stay-close.webp",
+  journey: "/onboarding/onboarding-02-see-distance.webp",
+  requests: "/onboarding/onboarding-03-little-joys.webp",
   together: "/onboarding/onboarding-04-keep-moment.png",
 } as const;
 
