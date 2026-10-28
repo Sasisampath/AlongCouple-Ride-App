@@ -41,9 +41,9 @@ test("optimized assets preserve alpha and mobile resolution budgets", async () =
 test("precache includes every optimized UI image and excludes private data", async () => {
   const precache = JSON.parse(await readFile(new URL("../public/image-precache.json", import.meta.url), "utf8"));
   assert.deepEqual(precache, Object.keys(manifest));
-  assert.ok(precache.every(path => /^\/(brand|onboarding|setup|requests|together)\/[\w-]+\.webp$/.test(path)));
+  assert.ok(precache.every(path => /^\/(brand|onboarding|setup|requests|together|profile)\/[\w-]+\.webp$/.test(path)));
 });
 test("PNG illustration duplicates are absent from the deployable public directories", async () => {
   const files = await readdir(new URL("../public", import.meta.url), { recursive: true });
-  assert.deepEqual(files.filter(path => /^(brand|onboarding|setup|requests|together)\/.*\.png$/.test(path)), []);
+  assert.deepEqual(files.filter(path => /^(brand|onboarding|setup|requests|together|profile)\/.*\.png$/.test(path)), []);
 });

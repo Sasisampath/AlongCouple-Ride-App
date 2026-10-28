@@ -238,5 +238,37 @@
     "originalBytes": 723993,
     "alpha": true,
     "originalSha256": "f8b483f595532e5a4594836bbcb50185160bac877428bf1e8d34e08a4923d34f"
+  },
+  "/profile/profile-account.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 47690,
+    "originalBytes": 1591855,
+    "alpha": true,
+    "originalSha256": "7776cf568da23b8ad4f3dd696666d5f551e59d0e23013930b90d4ded82960bea"
+  },
+  "/profile/profile-location-sharing.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 56248,
+    "originalBytes": 1236337,
+    "alpha": true,
+    "originalSha256": "415f1046530d7f4b71837367a2e1eed9848cdf7f3554eaddcdbbd4d88b8acd9a"
+  },
+  "/profile/profile-partner-connection.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 50252,
+    "originalBytes": 1589275,
+    "alpha": true,
+    "originalSha256": "f18de49866ad2de1ebbfd65f092df185e7fadea237784d3ad5c9310d1cc88850"
+  },
+  "/profile/profile-privacy.webp": {
+    "width": 512,
+    "height": 512,
+    "bytes": 31570,
+    "originalBytes": 1093767,
+    "alpha": true,
+    "originalSha256": "2cc8ccd861f6cbb66fb261d1630ecabf8ba5d1d6644b0b4044b34faa5f4e7c63"
   }
 }

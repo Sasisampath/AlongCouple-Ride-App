@@ -1,4 +1,4 @@
-const CACHE = "along-static-webp-v2";
+const CACHE = "along-static-webp-v3";
 const OFFLINE = "/offline.html";
 const PRECACHE = [
   OFFLINE,
@@ -19,7 +19,7 @@ self.addEventListener("install", (event) => {
       const response = await fetch("/image-precache.json", { cache: "no-store" });
       if (response.ok) {
         const assets = await response.json();
-        await Promise.allSettled(assets.filter(path => /^\/(brand|onboarding|setup|requests|together)\/[\w-]+\.webp$/.test(path)).map(path => cache.add(path)));
+        await Promise.allSettled(assets.filter(path => /^\/(brand|onboarding|setup|requests|together|profile)\/[\w-]+\.webp$/.test(path)).map(path => cache.add(path)));
       }
     } catch { /* Runtime requests populate the cache when install is offline. */ }
   }));
@@ -46,7 +46,7 @@ self.addEventListener("fetch", (event) => {
   const staticAsset =
     url.pathname.startsWith("/_next/static/") ||
     url.pathname.startsWith("/icons/") ||
-    /^\/(brand|onboarding|setup|requests|together)\/[\w-]+\.webp$/.test(url.pathname) ||
+    /^\/(brand|onboarding|setup|requests|together|profile)\/[\w-]+\.webp$/.test(url.pathname) ||
     ["/manifest.webmanifest", "/favicon.svg", "/og.png"].includes(url.pathname);
 
   if (!staticAsset) return;

@@ -5,7 +5,8 @@ const paths = Object.keys(manifest) as AssetPath[];
 export const imageGroups = {
   onboarding: paths.filter(path => path.startsWith("/onboarding/")),
   setup: paths.filter(path => path.startsWith("/setup/")),
-  main: ["/brand/along-map-icon.webp", "/setup/invite.webp", "/setup/sign-in.webp", "/setup/avatar-7.webp"],
+  main: ["/brand/along-map-icon.webp", "/setup/invite.webp", "/setup/sign-in.webp", "/setup/avatar-7.webp", ...paths.filter(path => path.startsWith("/profile/"))],
+  profile: paths.filter(path => path.startsWith("/profile/")),
   requests: paths.filter(path => path.startsWith("/requests/")),
   together: paths.filter(path => path.startsWith("/together/")),
 } as const;

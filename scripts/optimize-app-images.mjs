@@ -7,7 +7,7 @@ import sharp from "sharp";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const publicDir = `${root}public/`;
-const groups = ["brand", "onboarding", "setup", "requests", "together"];
+const groups = ["brand", "onboarding", "setup", "requests", "together", "profile"];
 const unused = new Set([
   "onboarding/onboarding-01-five-minutes.png", "onboarding/onboarding-02-live-journey.png",
   "onboarding/onboarding-03-little-requests.png", "onboarding/onboarding-04-together.png",
